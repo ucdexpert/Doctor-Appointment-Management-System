@@ -279,15 +279,41 @@ export default function ChatbotPage() {
     }
   };
 
-  // ── Render ──────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────
 
   return (
     <DashboardLayout role="patient">
       <div className="h-[calc(100vh-56px)] flex overflow-hidden relative">
+        {/* Inject custom styles */}
+        <style jsx global>{`
+          @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+          }
+          @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+            50% { box-shadow: 0 0 20px 10px rgba(99, 102, 241, 0); }
+          }
+          .typing-dot {
+            animation: typing 1.4s infinite ease-in-out;
+          }
+          .typing-dot:nth-child(1) { animation-delay: 0s; }
+          .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+          .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+          @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-4px); }
+          }
+        `}</style>
+
         {/* ═══ SIDEBAR OVERLAY (Mobile) ═══ */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
@@ -297,15 +323,15 @@ export default function ChatbotPage() {
           className={`
             fixed md:relative z-50 md:z-auto
             top-0 md:top-0 left-0 h-full md:h-auto
-            w-72 shrink-0 bg-white border-r border-gray-200
+            w-80 shrink-0 bg-white border-r border-gray-200
             flex flex-col overflow-hidden
             transition-transform duration-300 ease-in-out
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
           `}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">Chats</h2>
+          <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100">
+            <h2 className="font-semibold text-gray-900 text-lg">Chats</h2>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setSidebarOpen(false)}
@@ -324,14 +350,14 @@ export default function ChatbotPage() {
           </div>
 
           {/* Session list */}
-          <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
+          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
             {sessions.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-                <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center mb-3">
-                  <MessageSquare className="w-6 h-6 text-indigo-400" />
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mb-4 shadow-lg" style={{ animation: "float 3s ease-in-out infinite" }}>
+                  <MessageSquare className="w-7 h-7 text-white" />
                 </div>
-                <p className="text-sm font-medium text-gray-700">No conversations yet</p>
-                <p className="text-xs text-gray-400 mt-1 mb-4">
+                <p className="text-sm font-semibold text-gray-800 mb-1">No conversations yet</p>
+                <p className="text-xs text-gray-400 mb-5">
                   Start your first health query
                 </p>
                 <button
@@ -339,9 +365,9 @@ export default function ChatbotPage() {
                     createNewSession();
                     setSidebarOpen(false);
                   }}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium transition-colors"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-xs font-medium transition-all shadow-md hover:shadow-lg"
                 >
-                  <Plus className="w-3 h-3" />
+                  <Plus className="w-3.5 h-3.5" />
                   New Chat
                 </button>
               </div>
@@ -354,32 +380,36 @@ export default function ChatbotPage() {
                   <div
                     key={session.id}
                     onClick={() => handleSessionClick(session.id)}
-                    className={`group flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors relative ${
+                    className={`group flex items-center gap-2.5 px-3.5 py-3 rounded-xl cursor-pointer transition-all relative ${
                       isActive
-                        ? "bg-gray-100"
-                        : "hover:bg-gray-50"
+                        ? "bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 shadow-sm"
+                        : "hover:bg-gray-50 border border-transparent"
                     }`}
                   >
-                    <MessageSquare
-                      className={`w-3.5 h-3.5 shrink-0 ${
-                        isActive ? "text-gray-600" : "text-gray-400"
-                      }`}
-                    />
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      isActive ? "bg-gradient-to-br from-indigo-500 to-purple-600" : "bg-gray-100"
+                    }`}>
+                      <MessageSquare
+                        className={`w-4 h-4 ${
+                          isActive ? "text-white" : "text-gray-400"
+                        }`}
+                      />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p
                         className={`text-sm truncate ${
                           isActive ? "text-gray-900 font-medium" : "text-gray-600"
                         }`}
                       >
-                        {truncate(firstMsg || session.title || "New Chat", 28)}
+                        {truncate(firstMsg || session.title || "New Chat", 30)}
                       </p>
-                      <p className="text-[11px] text-gray-400">
+                      <p className="text-[11px] text-gray-400 mt-0.5">
                         {formatRelativeDate(session.updated_at)}
                       </p>
                     </div>
                     <button
                       onClick={(e) => deleteSession(session.id, e)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-red-500 shrink-0"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg shrink-0"
                       title="Delete"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -392,10 +422,14 @@ export default function ChatbotPage() {
 
           {/* Footer */}
           {sessions.length > 0 && (
-            <div className="px-3 py-2 border-t border-gray-100">
-              <p className="text-[11px] text-gray-400 text-center">
-                {sessions.length} conversation{sessions.length !== 1 ? "s" : ""}
-              </p>
+            <div className="px-4 py-3 border-t border-gray-100">
+              <button
+                onClick={createNewSession}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-medium transition-all shadow-md hover:shadow-lg"
+              >
+                <Plus className="w-4 h-4" />
+                New Chat
+              </button>
             </div>
           )}
         </aside>
@@ -403,28 +437,32 @@ export default function ChatbotPage() {
         {/* ═══ RIGHT PANEL – Chat Area ═══ */}
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* ── Chat Header ── */}
-          <div className="flex items-center justify-between px-3 md:px-5 py-3 border-b border-gray-200 bg-white shrink-0">
+          <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-200 bg-white shrink-0">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+                className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
                 title="Toggle sidebar"
               >
                 <PanelLeft className="w-5 h-5" />
               </button>
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                  <Bot className="w-4 h-4 text-indigo-600" />
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md">
+                    <Bot className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-900 leading-tight">
+                  <p className="text-base font-semibold text-gray-900">
                     AI Assistant
                   </p>
+                  <p className="text-xs text-gray-500">Powered by AI</p>
                 </div>
               </div>
             </div>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 text-green-600 text-[10px] font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 text-green-700 text-xs font-medium border border-green-200">
+              <span className="w-2 h-2 rounded-full bg-green-500" style={{ animation: "pulse-glow 2s infinite" }} />
               Online
             </span>
           </div>
@@ -432,48 +470,59 @@ export default function ChatbotPage() {
           {/* ── Chat Body ── */}
           {!currentSessionId ? (
             /* ═══════ Welcome Screen ═══════ */
-            <div className="flex-1 flex flex-col items-center justify-center px-4 overflow-y-auto">
-              <div className="w-full max-w-2xl mx-auto">
+            <div className="flex-1 flex flex-col items-center justify-center px-4 overflow-y-auto bg-gradient-to-br from-gray-50 to-indigo-50/30">
+              <div className="w-full max-w-3xl mx-auto" style={{ animation: "fadeSlideUp 0.5s ease-out both" }}>
                 {/* Bot Icon + Title */}
-                <div className="text-center mb-8">
-                  <div className="w-16 h-16 rounded-2xl bg-indigo-100 flex items-center justify-center mx-auto mb-4">
-                    <Bot className="w-8 h-8 text-indigo-600" />
+                <div className="text-center mb-10">
+                  <div className="relative inline-block mb-5">
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-xl" style={{ animation: "float 3s ease-in-out infinite" }}>
+                      <Bot className="w-10 h-10 text-white" />
+                    </div>
+                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-3 border-white flex items-center justify-center">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
                   </div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                  <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3">
                     AI Health Assistant
                   </h1>
-                  <p className="text-gray-500 text-sm md:text-base max-w-md mx-auto">
+                  <p className="text-gray-600 text-base md:text-lg max-w-lg mx-auto leading-relaxed">
                     Ask about symptoms, doctors, or health tips. I'm here to help you make
                     better health decisions.
                   </p>
                 </div>
 
                 {/* Feature Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
-                  <div className="flex flex-col items-center p-4 rounded-xl border border-gray-200 bg-gray-50 hover:bg-indigo-50 hover:border-indigo-200 transition-colors cursor-pointer">
-                    <Search className="w-5 h-5 text-indigo-600 mb-2" />
-                    <p className="text-sm font-medium text-gray-800">Symptom Analysis</p>
-                    <p className="text-xs text-gray-400 mt-1">Describe symptoms</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+                  <div className="group flex flex-col items-center p-6 rounded-2xl bg-white border border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all cursor-pointer" style={{ animation: "fadeSlideUp 0.5s ease-out 0.1s both" }}>
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <Search className="w-6 h-6 text-white" />
+                    </div>
+                    <p className="text-sm font-semibold text-gray-900 mb-1">Symptom Analysis</p>
+                    <p className="text-xs text-gray-500 text-center">Describe symptoms</p>
                   </div>
-                  <div className="flex flex-col items-center p-4 rounded-xl border border-gray-200 bg-gray-50 hover:bg-indigo-50 hover:border-indigo-200 transition-colors cursor-pointer">
-                    <Stethoscope className="w-5 h-5 text-indigo-600 mb-2" />
-                    <p className="text-sm font-medium text-gray-800">Find Doctors</p>
-                    <p className="text-xs text-gray-400 mt-1">Get recommendations</p>
+                  <div className="group flex flex-col items-center p-6 rounded-2xl bg-white border border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all cursor-pointer" style={{ animation: "fadeSlideUp 0.5s ease-out 0.2s both" }}>
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <Stethoscope className="w-6 h-6 text-white" />
+                    </div>
+                    <p className="text-sm font-semibold text-gray-900 mb-1">Find Doctors</p>
+                    <p className="text-xs text-gray-500 text-center">Get recommendations</p>
                   </div>
-                  <div className="flex flex-col items-center p-4 rounded-xl border border-gray-200 bg-gray-50 hover:bg-indigo-50 hover:border-indigo-200 transition-colors cursor-pointer">
-                    <HeartPulse className="w-5 h-5 text-indigo-600 mb-2" />
-                    <p className="text-sm font-medium text-gray-800">Health Tips</p>
-                    <p className="text-xs text-gray-400 mt-1">General guidance</p>
+                  <div className="group flex flex-col items-center p-6 rounded-2xl bg-white border border-gray-200 hover:border-indigo-300 hover:shadow-lg transition-all cursor-pointer" style={{ animation: "fadeSlideUp 0.5s ease-out 0.3s both" }}>
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <HeartPulse className="w-6 h-6 text-white" />
+                    </div>
+                    <p className="text-sm font-semibold text-gray-900 mb-1">Health Tips</p>
+                    <p className="text-xs text-gray-500 text-center">General guidance</p>
                   </div>
                 </div>
 
                 {/* Start Button */}
-                <div className="text-center">
+                <div className="text-center" style={{ animation: "fadeSlideUp 0.5s ease-out 0.4s both" }}>
                   <button
                     onClick={createNewSession}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm transition-colors shadow-sm"
+                    className="inline-flex items-center gap-2.5 px-8 py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold text-base transition-all shadow-lg hover:shadow-xl hover:scale-105"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-5 h-5" />
                     Start New Chat
                   </button>
                 </div>
@@ -485,33 +534,36 @@ export default function ChatbotPage() {
               {/* Messages */}
               <div
                 ref={bottomRef}
-                className="flex-1 overflow-y-auto px-3 md:px-4 py-4 space-y-4 bg-white"
+                className="flex-1 overflow-y-auto px-4 md:px-6 py-6 space-y-4 bg-gradient-to-br from-gray-50 to-indigo-50/20"
               >
                 {messages.length === 0 && (
                   <div className="flex flex-col items-center justify-center h-full text-center">
-                    <MessageSquare className="w-12 h-12 text-gray-200 mb-3" />
-                    <p className="text-sm text-gray-400">No messages yet</p>
-                    <p className="text-xs text-gray-300 mt-1">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-4">
+                      <MessageSquare className="w-8 h-8 text-indigo-400" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-500">No messages yet</p>
+                    <p className="text-xs text-gray-400 mt-1">
                       Say hello to get started
                     </p>
                   </div>
                 )}
 
-                {messages.map((msg) => {
+                {messages.map((msg, index) => {
                   const isUser = msg.role === "user";
                   return (
                     <div
                       key={msg.id}
-                      className={`flex items-end gap-2 ${
+                      className={`flex items-end gap-2.5 ${
                         isUser ? "flex-row-reverse" : "flex-row"
                       }`}
+                      style={{ animation: `fadeSlideUp 0.3s ease-out ${index * 0.05}s both` }}
                     >
                       {/* Avatar */}
                       <div
-                        className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                        className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-md ${
                           isUser
-                            ? "bg-indigo-600"
-                            : "bg-gray-200"
+                            ? "bg-gradient-to-br from-indigo-500 to-purple-600"
+                            : "bg-gradient-to-br from-gray-200 to-gray-300"
                         }`}
                       >
                         {isUser ? (
@@ -535,17 +587,17 @@ export default function ChatbotPage() {
 
                       {/* Bubble */}
                       <div
-                        className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
+                        className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-5 py-3 text-sm shadow-md ${
                           isUser
-                            ? "bg-indigo-600 text-white rounded-tr-md"
-                            : "bg-gray-100 text-gray-800 rounded-tl-md"
+                            ? "bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-tr-md"
+                            : "bg-white text-gray-800 rounded-tl-md border border-gray-200"
                         }`}
                       >
                         <p className="whitespace-pre-wrap leading-relaxed break-words">
                           {msg.content}
                         </p>
                         <p
-                          className={`text-[10px] mt-1.5 ${
+                          className={`text-[10px] mt-2 ${
                             isUser ? "text-indigo-200" : "text-gray-400"
                           }`}
                         >
@@ -561,15 +613,15 @@ export default function ChatbotPage() {
 
                 {/* Typing indicator */}
                 {loading && (
-                  <div className="flex items-end gap-2">
-                    <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+                  <div className="flex items-end gap-2.5" style={{ animation: "fadeSlideUp 0.3s ease-out both" }}>
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center shrink-0 shadow-md">
                       <Bot className="w-4 h-4 text-gray-600" />
                     </div>
-                    <div className="bg-gray-100 rounded-2xl rounded-tl-md px-4 py-3">
-                      <div className="flex gap-1.5">
-                        <span className="typing-dot w-2 h-2 bg-gray-400 rounded-full inline-block" />
-                        <span className="typing-dot w-2 h-2 bg-gray-400 rounded-full inline-block" />
-                        <span className="typing-dot w-2 h-2 bg-gray-400 rounded-full inline-block" />
+                    <div className="bg-white rounded-2xl rounded-tl-md px-5 py-4 shadow-md border border-gray-200">
+                      <div className="flex gap-2">
+                        <span className="typing-dot w-2.5 h-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full inline-block" />
+                        <span className="typing-dot w-2.5 h-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full inline-block" />
+                        <span className="typing-dot w-2.5 h-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full inline-block" />
                       </div>
                     </div>
                   </div>
@@ -580,28 +632,30 @@ export default function ChatbotPage() {
 
               {/* ── File chip ── */}
               {selectedFile && (
-                <div className="px-3 md:px-4 pt-2 bg-white">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200">
-                    <FileText className="w-4 h-4 text-gray-500" />
-                    <span className="text-xs font-medium text-gray-700 truncate max-w-[150px] sm:max-w-[200px]">
+                <div className="px-4 md:px-6 pt-3 bg-white">
+                  <div className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 shadow-sm">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                      <FileText className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700 truncate max-w-[150px] sm:max-w-[200px]">
                       {selectedFile.name}
                     </span>
-                    <span className="text-[10px] text-gray-400">
+                    <span className="text-xs text-gray-500">
                       ({(selectedFile.size / 1024).toFixed(0)} KB)
                     </span>
                     <button
                       onClick={removeSelectedFile}
-                      className="text-gray-400 hover:text-red-500 transition-colors"
+                      className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1 rounded-lg transition-colors"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
               )}
 
               {/* ── Input area ── */}
-              <div className="border-t border-gray-200 bg-white px-3 md:px-4 py-3 shrink-0">
-                <div className="flex items-end gap-2">
+              <div className="border-t border-gray-200 bg-white px-4 md:px-6 py-4 shrink-0">
+                <div className="flex items-end gap-3">
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -612,7 +666,7 @@ export default function ChatbotPage() {
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={loading || uploadingFile}
-                    className="p-2.5 rounded-xl text-gray-400 hover:text-indigo-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+                    className="p-3 rounded-xl text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0 hover:scale-110"
                     title="Attach file"
                   >
                     <Paperclip className="w-5 h-5" />
@@ -626,7 +680,7 @@ export default function ChatbotPage() {
                       onKeyDown={handleKeyDown}
                       placeholder="Message AI Assistant..."
                       rows={1}
-                      className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white disabled:opacity-60 transition-all"
+                      className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-5 py-3.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white disabled:opacity-60 transition-all"
                       disabled={loading || uploadingFile}
                     />
                   </div>
@@ -636,7 +690,7 @@ export default function ChatbotPage() {
                     disabled={
                       (!inputValue.trim() && !selectedFile) || loading || uploadingFile
                     }
-                    className="p-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+                    className="p-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0 hover:scale-110 shadow-md hover:shadow-lg"
                     title="Send"
                   >
                     <Send className="w-5 h-5" />
