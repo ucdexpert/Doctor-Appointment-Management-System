@@ -394,34 +394,34 @@ export default function DoctorsPage() {
     <DashboardLayout role="patient">
       <div className="max-w-7xl mx-auto w-full px-3 sm:px-6 lg:px-8">
         {/* ── Header ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
-          <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
-            <Stethoscope className="w-6 h-6 text-indigo-600" />
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+            <Stethoscope className="w-5 h-5 text-indigo-600" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Find Doctors</h1>
-            <p className="text-sm text-gray-500">
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">Find Doctors</h1>
+            <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">
               Search and book appointments with top doctors
             </p>
           </div>
         </div>
 
         {/* ── Search Bar ── */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-4">
-          <div className="flex flex-col sm:flex-row gap-2">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-4 mb-3">
+          <div className="flex gap-2">
             <div className="flex-1 relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 type="text"
-                placeholder="Search by doctor name or specialization..."
+                placeholder="Search doctors..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 h-11 text-sm border-gray-200 focus:border-indigo-400 focus:ring-indigo-400"
+                className="pl-9 h-10 text-sm border-gray-200 focus:border-indigo-400 focus:ring-indigo-400"
               />
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -429,14 +429,14 @@ export default function DoctorsPage() {
             </div>
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`relative inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-colors ${
+              className={`relative inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium border transition-colors shrink-0 ${
                 showFilters || activeFilterCount > 0
                   ? "bg-indigo-600 text-white border-indigo-600"
                   : "bg-white text-gray-700 border-gray-200 hover:border-indigo-300"
               }`}
             >
               <SlidersHorizontal className="w-4 h-4" />
-              Filters
+              <span className="hidden sm:inline">Filters</span>
               {activeFilterCount > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
                   {activeFilterCount}
