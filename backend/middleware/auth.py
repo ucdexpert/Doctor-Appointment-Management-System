@@ -63,15 +63,16 @@ async def get_current_user(
     return user
 
 
-def require_role(required_role: str):
-    """Dependency factory to require specific user role"""
-    
+def require_role(*required_roles: str):
+    """Dependency factory to require specific user role(s)"""
+
     async def role_checker(current_user: User = Depends(get_current_user)):
-        if current_user.role != required_role:
+        if current_user.role not in required_roles:
+            roles_str = " or ".join(required_roles)
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Requires {required_role} role",
+                detail=f"Requires {roles_str} role",
             )
         return current_user
-    
+
     return role_checker

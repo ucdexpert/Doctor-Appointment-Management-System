@@ -1,11 +1,43 @@
 "use client";
-
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { Calendar, Clock, Users, Star, TrendingUp } from "lucide-react";
+import { Calendar, Clock, Users, Star, TrendingUp, Loader2 } from "lucide-react";
+import { doctorsAPI } from "@/lib/api";
+import { toast } from "sonner";
+
+interface DoctorStats {
+  today_appointments: number;
+  week_appointments: number;
+  total_patients: number;
+  avg_rating: number;
+}
 
 export default function DoctorDashboard() {
   const { user } = useAuth();
+  const [stats, setStats] = useState<DoctorStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        setError(false);
+        const response = await doctorsAPI.getMyDashboard();
+        setStats(response.data.stats);
+      } catch (err: unknown) {
+        console.error("Failed to fetch doctor stats:", err);
+        setError(true);
+        toast.error("Failed to load dashboard data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   return (
     <DashboardLayout role="doctor">
@@ -22,30 +54,43 @@ export default function DoctorDashboard() {
 
         {/* Stats */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            icon={<Calendar className="w-5 h-5" />}
-            label="Today's Appointments"
-            value="0"
-            color="from-blue-500 to-cyan-500"
-          />
-          <StatCard
-            icon={<Clock className="w-5 h-5" />}
-            label="This Week"
-            value="0"
-            color="from-green-500 to-emerald-500"
-          />
-          <StatCard
-            icon={<Users className="w-5 h-5" />}
-            label="Total Patients"
-            value="0"
-            color="from-purple-500 to-pink-500"
-          />
-          <StatCard
-            icon={<Star className="w-5 h-5" />}
-            label="Average Rating"
-            value="0.0"
-            color="from-orange-500 to-red-500"
-          />
+          {loading ? (
+            <div className="col-span-full flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <span className="ml-3 text-gray-600">Loading stats...</span>
+            </div>
+          ) : error ? (
+            <div className="col-span-full text-center py-12 text-gray-500">
+              <p>Failed to load data. Please try again.</p>
+            </div>
+          ) : (
+            <>
+              <StatCard
+                icon={<Calendar className="w-5 h-5" />}
+                label="Today's Appointments"
+                value={stats?.today_appointments ?? 0}
+                color="from-blue-500 to-cyan-500"
+              />
+              <StatCard
+                icon={<Clock className="w-5 h-5" />}
+                label="This Week"
+                value={stats?.week_appointments ?? 0}
+                color="from-green-500 to-emerald-500"
+              />
+              <StatCard
+                icon={<Users className="w-5 h-5" />}
+                label="Total Patients"
+                value={stats?.total_patients ?? 0}
+                color="from-purple-500 to-pink-500"
+              />
+              <StatCard
+                icon={<Star className="w-5 h-5" />}
+                label="Average Rating"
+                value={stats?.avg_rating ? stats.avg_rating.toFixed(1) : "0.0"}
+                color="from-orange-500 to-red-500"
+              />
+            </>
+          )}
         </div>
 
         {/* Quick Actions */}
@@ -78,11 +123,22 @@ export default function DoctorDashboard() {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Today's Schedule
           </h3>
-          <div className="text-center py-12 text-gray-500">
-            <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-            <p>No appointments scheduled for today</p>
-            <p className="text-sm mt-2">Set your schedule to start receiving bookings</p>
-          </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            </div>
+          ) : stats?.today_appointments === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p>No appointments scheduled for today</p>
+              <p className="text-sm mt-2">Set your schedule to start receiving bookings</p>
+            </div>
+          ) : (
+            <p className="text-gray-600">
+              You have <strong className="text-blue-600">{stats?.today_appointments}</strong> appointment(s) today.
+              Check the <Link href="/doctor/appointments" className="text-blue-600 underline">Appointments</Link> page for details.
+            </p>
+          )}
         </div>
       </div>
     </DashboardLayout>
@@ -92,7 +148,7 @@ export default function DoctorDashboard() {
 function StatCard({ icon, label, value, color }: {
   icon: React.ReactNode;
   label: string;
-  value: string;
+  value: string | number;
   color: string;
 }) {
   return (
@@ -114,7 +170,7 @@ function QuickActionCard({ icon, title, description, href, color }: {
   color: string;
 }) {
   return (
-    <a
+    <Link
       href={href}
       className="block p-5 bg-white rounded-xl border border-gray-200 hover:shadow-lg transition-all group"
     >
@@ -123,6 +179,6 @@ function QuickActionCard({ icon, title, description, href, color }: {
       </div>
       <h4 className="font-semibold text-gray-900 mb-1">{title}</h4>
       <p className="text-sm text-gray-600">{description}</p>
-    </a>
+    </Link>
   );
 }

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from database import get_db
@@ -6,6 +6,10 @@ from models import User
 from schemas import UserRegister, UserLogin, UserResponse, Token, UserUpdate, ChangePassword, MessageResponse
 from utils.jwt import create_access_token
 from middleware.auth import get_current_user
+from utils.email import send_password_reset_email
+from utils.limiter import limiter
+import secrets
+from datetime import datetime, timedelta
 
 router = APIRouter(tags=["Authentication"])
 
@@ -23,7 +27,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
-def register(user_data: UserRegister, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")
+def register(request: Request, user_data: UserRegister, db: Session = Depends(get_db)):
     """Register a new user (patient, doctor, or admin)"""
 
     # Check if email already exists
@@ -60,7 +65,8 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-def login(credentials: UserLogin, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login(request: Request, credentials: UserLogin, db: Session = Depends(get_db)):
     """Login user and return JWT token"""
     
     # Find user by email
@@ -138,7 +144,7 @@ def update_profile(
     db: Session = Depends(get_db)
 ):
     """Update current user profile"""
-    
+
     # Update fields
     if user_data.name is not None:
         current_user.name = user_data.name
@@ -146,8 +152,93 @@ def update_profile(
         current_user.phone = user_data.phone
     if user_data.photo_url is not None:
         current_user.photo_url = user_data.photo_url
-    
+
     db.commit()
     db.refresh(current_user)
-    
+
     return current_user
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+@limiter.limit("3/minute")
+def forgot_password(
+    request: Request,
+    data: dict,
+    db: Session = Depends(get_db)
+):
+    """Request password reset email"""
+
+    email = data.get("email")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email is required"
+        )
+
+    # Check if user exists
+    user = db.query(User).filter(User.email == email).first()
+
+    if user:
+        # Generate secure reset token
+        reset_token = secrets.token_urlsafe(32)
+
+        # Set token and expiry (1 hour)
+        user.reset_token = reset_token
+        user.reset_token_expiry = datetime.utcnow() + timedelta(hours=1)
+        db.commit()
+
+        # Send reset email
+        try:
+            send_password_reset_email(
+                email=user.email,
+                reset_token=reset_token,
+                user_name=user.name
+            )
+        except Exception as e:
+            print(f"Failed to send reset email: {e}")
+
+    # Always return success (security best practice - don't reveal if email exists)
+    return {"message": "Reset email sent if account exists"}
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+def reset_password(
+    data: dict,
+    db: Session = Depends(get_db)
+):
+    """Reset password using token"""
+
+    token = data.get("token")
+    new_password = data.get("new_password")
+
+    if not token or not new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token and new password are required"
+        )
+
+    if len(new_password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 6 characters"
+        )
+
+    # Find user with valid token
+    user = db.query(User).filter(
+        User.reset_token == token,
+        User.reset_token_expiry > datetime.utcnow()
+    ).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+
+    # Update password and invalidate token
+    user.password = hash_password(new_password)
+    user.reset_token = None
+    user.reset_token_expiry = None
+    db.commit()
+
+    return {"message": "Password reset successful"}

@@ -9,9 +9,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Clock, MapPin, ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
+import TimeSlotPicker from "@/components/appointment/TimeSlotPicker";
+import { Calendar, Clock, MapPin, DollarSign, ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+
+interface TimeSlot {
+  time: string;
+  isAvailable: boolean;
+}
 
 export default function BookAppointmentPage() {
   const router = useRouter();
@@ -21,7 +27,7 @@ export default function BookAppointmentPage() {
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedSlot, setSelectedSlot] = useState("");
-  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [reason, setReason] = useState("");
@@ -53,9 +59,13 @@ export default function BookAppointmentPage() {
     setSlotsLoading(true);
     try {
       const response = await doctorsAPI.getSlots(parseInt(doctorId), selectedDate);
-      setAvailableSlots(response.data.slots || []);
+      const slots: string[] = response.data.slots || [];
+      // Convert string[] to TimeSlot[] format
+      setAvailableSlots(
+        slots.map((time) => ({ time, isAvailable: true }))
+      );
       setSelectedSlot(""); // Reset selected slot when date changes
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Failed to load available slots");
       setAvailableSlots([]);
     } finally {
@@ -133,8 +143,8 @@ export default function BookAppointmentPage() {
                   <span>{doctor.city}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600 justify-center">
-                  <span className="font-medium">PKR</span>
-                  <span>{doctor.consultation_fee}</span>
+                  <DollarSign className="w-4 h-4 text-gray-400" />
+                  <span>PKR {doctor.consultation_fee}</span>
                 </div>
                 <div className="pt-3 border-t">
                   <p className="text-xs text-gray-500 text-center">
@@ -192,24 +202,11 @@ export default function BookAppointmentPage() {
                           <p className="text-sm text-gray-500 mt-1">Please select another date</p>
                         </div>
                       ) : (
-                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                          {availableSlots.map((slot) => (
-                            <button
-                              key={slot}
-                              type="button"
-                              onClick={() => setSelectedSlot(slot)}
-                              className={`
-                                py-2 px-3 rounded-lg text-sm font-medium transition-all
-                                ${selectedSlot === slot
-                                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
-                                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                }
-                              `}
-                            >
-                              {slot}
-                            </button>
-                          ))}
-                        </div>
+                        <TimeSlotPicker
+                          slots={availableSlots}
+                          selectedSlot={selectedSlot}
+                          onSelectSlot={setSelectedSlot}
+                        />
                       )}
                     </div>
                   )}

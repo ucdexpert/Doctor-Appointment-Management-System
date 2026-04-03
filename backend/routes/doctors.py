@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from database import get_db
@@ -6,6 +6,7 @@ from models import Doctor, User
 from schemas import DoctorCreate, DoctorUpdate, DoctorResponse, MessageResponse
 from middleware.auth import get_current_user, require_role
 from pydantic import BaseModel
+import math
 
 router = APIRouter(prefix="/doctors", tags=["Doctors"])
 
@@ -20,8 +21,18 @@ class DoctorSearchFilters(BaseModel):
     sort_by: Optional[str] = None  # 'rating', 'experience', 'fee'
 
 
-@router.get("", response_model=List[DoctorResponse])
+class PaginatedDoctorsResponse(BaseModel):
+    doctors: List[DoctorResponse]
+    total: int
+    page: int
+    limit: int
+    pages: int
+
+
+@router.get("", response_model=PaginatedDoctorsResponse)
 def get_all_doctors(
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=50),
     search: Optional[str] = None,
     specialization: Optional[str] = None,
     city: Optional[str] = None,
@@ -31,29 +42,29 @@ def get_all_doctors(
     sort_by: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """Get all approved doctors with optional filters"""
-    
+    """Get all approved doctors with optional filters and pagination"""
+
     # Base query - only approved doctors
     query = db.query(Doctor).filter(Doctor.is_approved == True)
-    
+
     # Apply filters
     if search:
         query = query.join(User).filter(
             User.name.ilike(f"%{search}%") | Doctor.specialization.ilike(f"%{search}%")
         )
-    
+
     if specialization:
         query = query.filter(Doctor.specialization == specialization)
-    
+
     if city:
         query = query.filter(Doctor.city == city)
-    
+
     if min_fee is not None:
         query = query.filter(Doctor.consultation_fee >= min_fee)
-    
+
     if max_fee is not None:
         query = query.filter(Doctor.consultation_fee <= max_fee)
-    
+
     # Sorting
     if sort_by == "rating":
         query = query.order_by(Doctor.avg_rating.desc())
@@ -63,9 +74,24 @@ def get_all_doctors(
         query = query.order_by(Doctor.consultation_fee.asc())
     else:
         query = query.order_by(Doctor.created_at.desc())
-    
-    doctors = query.all()
-    return doctors
+
+    # Get total count before pagination
+    total = query.count()
+
+    # Calculate pages
+    total_pages = math.ceil(total / limit) if total > 0 else 0
+
+    # Apply pagination
+    offset = (page - 1) * limit
+    doctors = query.offset(offset).limit(limit).all()
+
+    return {
+        "doctors": doctors,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": total_pages
+    }
 
 
 @router.get("/{doctor_id}", response_model=DoctorResponse)

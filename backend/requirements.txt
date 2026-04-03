@@ -11,3 +11,8 @@ pydantic-settings==2.6.0
 resend==0.8.0
 groq>=1.1.2
 email-validator==2.3.0
+slowapi==0.1.9
+pytest==7.4.3
+httpx==0.26.0
+APScheduler==3.10.4
+reportlab==4.0.9

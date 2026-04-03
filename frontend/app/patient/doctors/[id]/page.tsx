@@ -2,13 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import DashboardLayout from "@/components/layout/DashboardLayout";
 import { doctorsAPI, reviewsAPI } from "@/lib/api";
 import { Doctor, Review } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { MapPin, Clock, Star, Calendar, BookOpen, Briefcase, FileText, ArrowLeft } from "lucide-react";
+import StarRating from "@/components/doctor/StarRating";
+import { MapPin, Clock, DollarSign, Star, Calendar, BookOpen, Briefcase, FileText, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -16,7 +15,7 @@ export default function DoctorProfilePage() {
   const router = useRouter();
   const params = useParams();
   const doctorId = params.id as string;
-  
+
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,10 +31,10 @@ export default function DoctorProfilePage() {
         doctorsAPI.getById(parseInt(doctorId)),
         reviewsAPI.getByDoctor(parseInt(doctorId))
       ]);
-      
+
       setDoctor(doctorRes.data);
       setReviews(reviewsRes.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Failed to load doctor profile");
       router.push("/patient/doctors");
     } finally {
@@ -43,31 +42,14 @@ export default function DoctorProfilePage() {
     }
   };
 
-  const renderStars = (rating: number) => {
-    return (
-      <div className="flex items-center gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`w-5 h-5 ${
-              star <= Math.round(rating)
-                ? "fill-yellow-400 text-yellow-400"
-                : "text-gray-300"
-            }`}
-          />
-        ))}
-      </div>
-    );
-  };
-
   if (loading) {
     return (
-      <DashboardLayout role="patient">
-        <div className="text-center py-12">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading doctor profile...</p>
+          <p className="text-gray-600">Loading...</p>
         </div>
-      </DashboardLayout>
+      </div>
     );
   }
 
@@ -76,16 +58,20 @@ export default function DoctorProfilePage() {
   }
 
   return (
-    <DashboardLayout role="patient">
-      <div className="max-w-5xl">
-        {/* Back Button */}
-        <Link href="/patient/doctors">
-          <Button variant="ghost" className="mb-4 gap-2">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Doctors
-          </Button>
-        </Link>
+    <div className="min-h-screen bg-gray-50">
+      {/* Top Bar */}
+      <div className="bg-white border-b border-gray-200 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <Link href="/patient/doctors">
+            <Button variant="ghost" size="sm" className="p-0">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          </Link>
+          <h1 className="text-lg font-semibold text-gray-900">Doctor Profile</h1>
+        </div>
+      </div>
 
+      <div className="max-w-5xl mx-auto p-4 md:p-6">
         {/* Profile Header */}
         <Card className="border-0 shadow-lg mb-6 overflow-hidden">
           <div className="h-3 bg-gradient-to-r from-blue-600 to-indigo-600"></div>
@@ -105,7 +91,10 @@ export default function DoctorProfilePage() {
                       {doctor.specialization}
                     </p>
                     <div className="flex items-center gap-2 mb-2">
-                      {renderStars(parseFloat(doctor.avg_rating.toString()))}
+                      <StarRating
+                        rating={Math.round(parseFloat(doctor.avg_rating.toString()))}
+                        size="sm"
+                      />
                       <span className="text-sm text-gray-600">
                         {doctor.avg_rating} ({doctor.total_reviews} reviews)
                       </span>
@@ -123,8 +112,8 @@ export default function DoctorProfilePage() {
                     <span>{doctor.experience_years} years experience</span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-600">
-                    <span className="font-medium">PKR</span>
-                    <span>{doctor.consultation_fee} consultation</span>
+                    <DollarSign className="w-5 h-5 text-gray-400" />
+                    <span>PKR {doctor.consultation_fee} consultation</span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-600">
                     <BookOpen className="w-5 h-5 text-gray-400" />
@@ -185,28 +174,11 @@ export default function DoctorProfilePage() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }
 
 function ReviewCard({ review }: { review: Review }) {
-  const renderStars = (rating: number) => {
-    return (
-      <div className="flex items-center gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`w-4 h-4 ${
-              star <= rating
-                ? "fill-yellow-400 text-yellow-400"
-                : "text-gray-300"
-            }`}
-          />
-        ))}
-      </div>
-    );
-  };
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-PK", {
@@ -232,7 +204,7 @@ function ReviewCard({ review }: { review: Review }) {
             </p>
           </div>
         </div>
-        {renderStars(review.rating)}
+        <StarRating rating={review.rating} size="sm" />
       </div>
       {review.comment && (
         <p className="text-gray-600 text-sm mt-2">

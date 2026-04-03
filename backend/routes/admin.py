@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from database import get_db
 from models import Doctor, User, Appointment, Review
 from schemas import DoctorResponse, UserResponse, AdminStats, MessageResponse, BanUser
@@ -98,8 +98,8 @@ def reject_doctor(
 
 @router.get("/users", response_model=List[UserResponse])
 def get_all_users(
-    role: str = None,
-    search: str = None,
+    role: Optional[str] = None,
+    search: Optional[str] = None,
     current_user: User = Depends(require_role("admin")),
     db: Session = Depends(get_db)
 ):

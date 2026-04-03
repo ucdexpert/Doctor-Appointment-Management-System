@@ -10,6 +10,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string, role: string, phone?: string) => Promise<void>;
   logout: () => void;
+  updateUser: (updatedUser: Partial<User>) => void;
   isLoading: boolean;
   isAuthenticated: boolean;
 }
@@ -25,10 +26,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Check for existing token on mount
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
-    
+
     if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+      try {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error('Failed to parse stored user data:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
     }
     setIsLoading(false);
   }, []);
@@ -37,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authAPI.login({ email, password });
       const { access_token, user: userData } = response.data;
-      
+
       setToken(access_token);
       setUser(userData);
       localStorage.setItem('token', access_token);
@@ -51,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authAPI.register({ name, email, password, role, phone });
       const { access_token, user: userData } = response.data;
-      
+
       setToken(access_token);
       setUser(userData);
       localStorage.setItem('token', access_token);
@@ -59,6 +66,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       throw error;
     }
+  };
+
+  const updateUser = (updatedUser: Partial<User>) => {
+    const newUser = { ...user, ...updatedUser } as User;
+    setUser(newUser);
+    localStorage.setItem('user', JSON.stringify(newUser));
   };
 
   const logout = () => {
@@ -76,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         register,
         logout,
+        updateUser,
         isLoading,
         isAuthenticated: !!token && !!user,
       }}

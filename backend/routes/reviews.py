@@ -5,7 +5,6 @@ from database import get_db
 from models import Review, Doctor, User, Appointment
 from schemas import ReviewCreate, ReviewResponse
 from middleware.auth import require_role
-from datetime import datetime
 
 router = APIRouter(prefix="/reviews", tags=["Reviews"])
 

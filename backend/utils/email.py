@@ -7,6 +7,9 @@ resend.api_key = os.getenv("RESEND_API_KEY", "")
 # Default sender email (update with your domain)
 FROM_EMAIL = os.getenv("FROM_EMAIL", "appointments@doctor-appointment.com")
 
+# Frontend URL for links (password reset, etc.)
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
 
 def send_appointment_confirmation(patient_email: str, doctor_name: str,
                                    date: str, time: str, clinic_address: str = None):
@@ -119,7 +122,7 @@ def send_doctor_approved(doctor_email: str, doctor_name: str):
                         You can now log in to your account, set your schedule, and start receiving appointments from patients.
                     </p>
                     <div style="text-align: center; margin: 30px 0;">
-                        <a href="http://localhost:3000/login" 
+                        <a href="{FRONTEND_URL}/login"
                            style="background: #667eea; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; display: inline-block;">
                             Login Now
                         </a>
@@ -180,7 +183,7 @@ def send_doctor_rejected(doctor_email: str, doctor_name: str, reason: str):
 def send_appointment_cancelled(recipient_email: str, recipient_name: str,
                                 cancel_by: str, date: str, time: str, reason: str):
     """Send appointment cancellation email"""
-    
+
     if not resend.api_key:
         print("Resend API key not configured, skipping email")
         return
@@ -216,3 +219,59 @@ def send_appointment_cancelled(recipient_email: str, recipient_name: str,
         print(f"Cancellation email sent to {recipient_email}")
     except Exception as e:
         print(f"Failed to send cancellation email: {e}")
+
+
+def send_password_reset_email(email: str, reset_token: str, user_name: str):
+    """Send password reset email with token"""
+
+    if not resend.api_key:
+        print("Resend API key not configured, skipping email")
+        return
+
+    # Frontend URL for password reset
+    reset_link = f"{FRONTEND_URL}/reset-password?token={reset_token}"
+
+    try:
+        resend.Emails.send({
+            "from": FROM_EMAIL,
+            "to": email,
+            "subject": "Reset Your Password - MediConnect",
+            "html": f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+                    <h1 style="color: white; margin: 0;">Reset Your Password 🔐</h1>
+                </div>
+                <div style="padding: 30px; background: #f9f9f9;">
+                    <p style="font-size: 16px; color: #333;">Dear {user_name},</p>
+                    <p style="font-size: 16px; color: #333;">
+                        We received a request to reset your password for your MediConnect account.
+                    </p>
+                    <p style="font-size: 16px; color: #333;">
+                        Click the button below to set a new password. This link will expire in <strong>1 hour</strong>.
+                    </p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="{reset_link}"
+                           style="background: #667eea; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+                            Reset Password
+                        </a>
+                    </div>
+                    <p style="font-size: 14px; color: #666;">
+                        Or copy and paste this link into your browser:<br/>
+                        <a href="{reset_link}" style="color: #667eea; word-break: break-all;">{reset_link}</a>
+                    </p>
+                    <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ff9800;">
+                        <p style="margin: 0; font-size: 14px; color: #666;">
+                            ⚠️ If you didn't request this password reset, please ignore this email. Your account remains secure.
+                        </p>
+                    </div>
+                    <p style="font-size: 16px; color: #333; margin-top: 20px;">
+                        Best regards,<br/>
+                        <strong>Your MediConnect Team</strong>
+                    </p>
+                </div>
+            </div>
+            """
+        })
+        print(f"Password reset email sent to {email}")
+    except Exception as e:
+        print(f"Failed to send password reset email: {e}")

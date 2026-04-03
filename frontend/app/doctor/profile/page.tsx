@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, User, MapPin, BookOpen, Briefcase, FileText, Camera, X } from "lucide-react";
 import { toast } from "sonner";
-import { doctorsAPI, uploadAPI } from "@/lib/api";
+import { doctorsAPI, uploadAPI, authAPI } from "@/lib/api";
 
 const specializations = [
   "General Physician",
@@ -43,12 +43,13 @@ const cities = [
 
 export default function DoctorProfilePage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, updateUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [imageError, setImageError] = useState(false);
   const [formData, setFormData] = useState({
     specialization: "",
     qualification: "",
@@ -77,7 +78,6 @@ export default function DoctorProfilePage() {
     try {
       // Get fresh token
       const token = localStorage.getItem('token');
-      console.log('Token from localStorage:', token ? token.substring(0, 20) + '...' : 'null');
 
       if (!token) {
         throw new Error('Not authenticated. Please login again.');
@@ -99,9 +99,7 @@ export default function DoctorProfilePage() {
         }),
       });
 
-      console.log('Response status:', response.status);
       const data = await response.json();
-      console.log('Response data:', data);
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -156,14 +154,13 @@ export default function DoctorProfilePage() {
     setUploadingPhoto(true);
     try {
       const response = await uploadAPI.profilePhoto(selectedFile);
-      const photoUrl = response.data.photo_url;
-      const updatedUser = { ...user, photo_url: photoUrl };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      // Update both AuthContext and localStorage
+      updateUser(response.data.user);
+
       toast.success("Profile photo uploaded successfully");
       setShowPhotoModal(false);
       setSelectedFile(null);
       setPreviewUrl(null);
-      window.location.reload();
     } catch (error: any) {
       const message = error?.response?.data?.detail || "Failed to upload photo";
       toast.error(message);
@@ -176,13 +173,13 @@ export default function DoctorProfilePage() {
     if (!confirm("Are you sure you want to remove your profile photo?")) return;
     setLoading(true);
     try {
-      await doctorsAPI.updateProfile({ photo_url: null });
-      const updatedUser = { ...user, photo_url: null };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      await authAPI.updateProfile({ photo_url: null });
+      // Update AuthContext with null photo_url
+      updateUser({ ...user, photo_url: null } as any);
       toast.success("Profile photo removed");
-      window.location.reload();
     } catch (error: any) {
       toast.error("Failed to remove photo");
+    } finally {
       setLoading(false);
     }
   };
@@ -210,12 +207,13 @@ export default function DoctorProfilePage() {
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Profile Photo Section */}
               <div className="flex items-center gap-4 mb-6 pb-6 border-b">
-                {user?.photo_url && user.photo_url !== 'loading' ? (
+                {user?.photo_url && user.photo_url !== 'loading' && !imageError ? (
                   <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-blue-500">
                     <img
                       src={user.photo_url.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${user.photo_url}` : user.photo_url}
                       alt={user.name}
                       className="w-full h-full object-cover"
+                      onError={() => setImageError(true)}
                     />
                   </div>
                 ) : (

@@ -4,36 +4,6 @@ import { Stethoscope, Calendar, Clock, Shield, Heart, Users } from "lucide-react
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-indigo-50">
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                <Heart className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                HealthCare+
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Link
-                href="/login"
-                className="px-5 py-2 text-gray-700 hover:text-blue-600 font-medium transition-colors text-sm"
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/register"
-                className="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full font-medium hover:shadow-lg hover:shadow-blue-500/30 transition-all transform hover:-translate-y-0.5 text-sm"
-              >
-                Get Started
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {/* Hero Section */}
       <main className="container mx-auto px-4">
         <div className="py-12 md:py-20">
@@ -49,18 +19,18 @@ export default function Home() {
               </span>
             </h1>
             <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
-              Book appointments with top-rated doctors instantly. 
+              Book appointments with top-rated doctors instantly.
               No waiting, no hassle. Quality healthcare at your fingertips.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
-                href="/register"
+                href="/patient/doctors"
                 className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full font-semibold text-lg hover:shadow-xl hover:shadow-blue-500/30 transition-all transform hover:-translate-y-1"
               >
                 Book an Appointment
               </Link>
               <Link
-                href="/register"
+                href="/register?role=doctor"
                 className="px-8 py-4 border-2 border-gray-200 text-gray-700 rounded-full font-semibold text-lg hover:border-blue-600 hover:text-blue-600 transition-all"
               >
                 Become a Doctor
@@ -186,28 +156,6 @@ export default function Home() {
           </Link>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-300 py-10 mt-16">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center">
-                <Heart className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xl font-bold text-white">HealthCare+</span>
-            </div>
-            <p className="text-sm">
-              © 2025 HealthCare+. Built with ❤️ for better healthcare.
-            </p>
-            <div className="flex gap-6 text-sm">
-              <Link href="#" className="hover:text-white transition-colors">Privacy</Link>
-              <Link href="#" className="hover:text-white transition-colors">Terms</Link>
-              <Link href="#" className="hover:text-white transition-colors">Contact</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

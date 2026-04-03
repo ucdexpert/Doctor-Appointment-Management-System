@@ -85,6 +85,7 @@ export interface ChatMessage {
   session_id: number;
   role: 'user' | 'assistant';
   content: string;
+  file_url?: string | null;
   created_at: string;
 }
 

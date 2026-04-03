@@ -1,11 +1,44 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { Calendar, Clock, Users, Star } from "lucide-react";
+import { Calendar, Clock, Users, Star, Loader2, Heart } from "lucide-react";
+import { appointmentsAPI } from "@/lib/api";
+import { toast } from "sonner";
+
+interface PatientStats {
+  total: number;
+  upcoming: number;
+  completed: number;
+  cancelled: number;
+}
 
 export default function PatientDashboard() {
   const { user } = useAuth();
+  const [stats, setStats] = useState<PatientStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        setError(false);
+        const response = await appointmentsAPI.getStats();
+        setStats(response.data);
+      } catch (err: unknown) {
+        console.error("Failed to fetch patient stats:", err);
+        setError(true);
+        toast.error("Failed to load dashboard data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   return (
     <DashboardLayout role="patient">
@@ -57,23 +90,35 @@ export default function PatientDashboard() {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Quick Stats
           </h3>
-          <div className="grid sm:grid-cols-3 gap-4">
-            <StatCard
-              label="Total Appointments"
-              value="0"
-              color="text-blue-600"
-            />
-            <StatCard
-              label="Upcoming"
-              value="0"
-              color="text-green-600"
-            />
-            <StatCard
-              label="Completed"
-              value="0"
-              color="text-purple-600"
-            />
-          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <span className="ml-3 text-gray-600">Loading stats...</span>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12 text-gray-500">
+              <p>Failed to load data. Please try again.</p>
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-3 gap-4">
+              <StatCard
+                label="Total Appointments"
+                value={stats?.total ?? 0}
+                color="text-blue-600"
+              />
+              <StatCard
+                label="Upcoming"
+                value={stats?.upcoming ?? 0}
+                color="text-green-600"
+              />
+              <StatCard
+                label="Completed"
+                value={stats?.completed ?? 0}
+                color="text-purple-600"
+              />
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>
@@ -88,7 +133,7 @@ function QuickActionCard({ icon, title, description, href, color }: {
   color: string;
 }) {
   return (
-    <a
+    <Link
       href={href}
       className="block p-5 bg-white rounded-xl border border-gray-200 hover:shadow-lg transition-all group"
     >
@@ -97,13 +142,13 @@ function QuickActionCard({ icon, title, description, href, color }: {
       </div>
       <h4 className="font-semibold text-gray-900 mb-1">{title}</h4>
       <p className="text-sm text-gray-600">{description}</p>
-    </a>
+    </Link>
   );
 }
 
 function StatCard({ label, value, color }: {
   label: string;
-  value: string;
+  value: number;
   color: string;
 }) {
   return (

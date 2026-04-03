@@ -1,12 +1,22 @@
 import os
 from groq import Groq
 from sqlalchemy.orm import Session
-from sqlalchemy import and_
-from datetime import datetime
 from database import get_db
 
+# Validate GROQ_API_KEY before client initialization
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+if not GROQ_API_KEY:
+    raise ValueError("GROQ_API_KEY environment variable is not set")
+
 # Initialize Groq client
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+client = Groq(api_key=GROQ_API_KEY)
+# Configurable settings
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+GROQ_MAX_TOKENS = int(os.getenv("GROQ_MAX_TOKENS", "600"))
+GROQ_TEMPERATURE = float(os.getenv("GROQ_TEMPERATURE", "0.7"))
+
+# WARNING: Rate limiting must be applied at the route level to prevent API abuse.
+# Add rate limiting middleware (e.g., slowapi, flask-limiter) to the chatbot endpoint.
 
 
 def get_doctors_context(db: Session) -> str:
@@ -14,34 +24,35 @@ def get_doctors_context(db: Session) -> str:
     Fetch all approved doctors from database with their schedules
     Returns formatted string context for AI system prompt
     """
-    from models import Doctor, User, Schedule
-    
-    # Get all approved doctors
-    doctors = db.query(Doctor).filter(
-        Doctor.is_approved == True
-    ).all()
-    
-    if not doctors:
-        return "No doctors currently available in the system."
-    
-    doctors_context = []
-    
-    for doctor in doctors:
-        # Get doctor's user info
-        user = db.query(User).filter(User.id == doctor.user_id).first()
-        doctor_name = user.name if user else "Unknown"
-        
-        # Get doctor's schedule (available days)
-        schedules = db.query(Schedule).filter(
-            Schedule.doctor_id == doctor.id,
-            Schedule.is_available == True
+    try:
+        from models import Doctor, User, Schedule
+
+        # Get all approved doctors
+        doctors = db.query(Doctor).filter(
+            Doctor.is_approved == True
         ).all()
-        
-        available_days = [s.day_of_week for s in schedules]
-        available_days_str = ", ".join(available_days) if available_days else "Not specified"
-        
-        # Build doctor info
-        doctor_info = f"""
+
+        if not doctors:
+            return "No doctors currently available in the system."
+
+        doctors_context = []
+
+        for doctor in doctors:
+            # Get doctor's user info
+            user = db.query(User).filter(User.id == doctor.user_id).first()
+            doctor_name = user.name if user else "Unknown"
+
+            # Get doctor's schedule (available days)
+            schedules = db.query(Schedule).filter(
+                Schedule.doctor_id == doctor.id,
+                Schedule.is_available == True
+            ).all()
+
+            available_days = [s.day_of_week for s in schedules]
+            available_days_str = ", ".join(available_days) if available_days else "Not specified"
+
+            # Build doctor info
+            doctor_info = f"""
 - Dr. {doctor_name} (ID: {doctor.id})
   - Specialization: {doctor.specialization}
   - City: {doctor.city or 'Not specified'}
@@ -50,11 +61,14 @@ def get_doctors_context(db: Session) -> str:
   - Experience: {doctor.experience_years} years
   - Available Days: {available_days_str}
   - Bio: {doctor.bio or 'No bio available'}
-        """.strip()
-        
-        doctors_context.append(doctor_info)
-    
-    return "\n\n".join(doctors_context)
+            """.strip()
+
+            doctors_context.append(doctor_info)
+
+        return "\n\n".join(doctors_context)
+    except Exception as e:
+        print(f"get_doctors_context error: {e}")
+        return "Unable to fetch doctor information at this time."
 
 
 def get_symptom_doctor_mapping() -> str:
@@ -160,41 +174,67 @@ ENGLISH:
 """
 
 
-def get_chatbot_reply(conversation_history: list, user_message: str, db: Session) -> str:
+def get_chatbot_reply(conversation_history: list, user_message: str, db: Session, file_context: str = None) -> str:
     """
     Get AI reply from Groq LLM with real doctors from database
-    
+
     Args:
         conversation_history: List of previous messages [{"role": "user/assistant", "content": "..."}]
         user_message: Current user message
         db: SQLAlchemy database session
-    
+        file_context: Optional file context (medical report description)
+
     Returns:
         AI response string
     """
     # Fetch real doctors from database
     doctors_context = get_doctors_context(db)
     symptom_mapping = get_symptom_doctor_mapping()
-    
+
+    # Sanitize file_context: max 2000 chars, remove { and } characters
+    sanitized_file_context = None
+    if file_context:
+        sanitized_file_context = file_context[:2000].replace("{", "").replace("}", "")
+
+    # Add file context if provided
+    file_context_note = ""
+    if sanitized_file_context:
+        file_context_note = f"""
+
+MEDICAL REPORT/FILE CONTEXT:
+The user has shared a medical file/report with you. Here's what they uploaded:
+{sanitized_file_context}
+
+When analyzing medical reports:
+1. Ask clarifying questions about the report
+2. Suggest which specialist to consult based on the report
+3. NEVER give medical diagnosis - always recommend consulting a real doctor
+4. Be empathetic and supportive
+5. Explain medical terms in simple language
+"""
+
     # Build system prompt with real doctors
     system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
         DOCTORS_CONTEXT=doctors_context,
         SYMPTOM_MAPPING=symptom_mapping
-    )
-    
+    ) + file_context_note
+
+    # Limit conversation history to last 10 messages to prevent token overflow
+    limited_history = conversation_history[-10:] if len(conversation_history) > 10 else conversation_history
+
     # Build messages array with system prompt
     messages = [
         {"role": "system", "content": system_prompt}
-    ] + conversation_history + [
+    ] + limited_history + [
         {"role": "user", "content": user_message}
     ]
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model=GROQ_MODEL,
             messages=messages,
-            max_tokens=600,
-            temperature=0.7,
+            max_tokens=GROQ_MAX_TOKENS,
+            temperature=GROQ_TEMPERATURE,
         )
 
         return response.choices[0].message.content
@@ -202,12 +242,14 @@ def get_chatbot_reply(conversation_history: list, user_message: str, db: Session
         print(f"Groq API Error: {e}")
         return "Sorry, I'm having trouble connecting right now. Please try again later or contact support for assistance."
 
-
-# For testing without database
+# For testing without database - only available in development environment
 def get_chatbot_reply_test(conversation_history: list, user_message: str) -> str:
     """
     Test version without database dependency
     """
+    if os.getenv("ENVIRONMENT") != "development":
+        raise RuntimeError("get_chatbot_reply_test is only available in development mode")
+
     system_prompt = """
 You are a helpful medical assistant for a doctor appointment booking platform in Pakistan.
 
@@ -224,10 +266,10 @@ Be empathetic and helpful with general health questions, but always mention that
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model=GROQ_MODEL,
             messages=messages,
-            max_tokens=500,
-            temperature=0.7,
+            max_tokens=GROQ_MAX_TOKENS,
+            temperature=GROQ_TEMPERATURE,
         )
 
         return response.choices[0].message.content

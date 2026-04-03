@@ -223,15 +223,17 @@ class ReviewResponse(ReviewBase):
 class ChatMessageCreate(BaseModel):
     session_id: int
     message: str
+    file_url: Optional[str] = None  # Medical report/image
 
 
 class ChatMessageResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     session_id: int
     role: str
     content: str
+    file_url: Optional[str] = None
     created_at: datetime
 
 
@@ -241,19 +243,24 @@ class ChatSessionCreate(BaseModel):
 
 class ChatSessionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     user_id: int
     title: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-    
+
     messages: Optional[list[ChatMessageResponse]] = None
 
 
 class ChatReply(BaseModel):
     reply: str
 
+
+class ChatMessageWithFile(BaseModel):
+    session_id: int
+    message: str
+    file_url: Optional[str] = None
 
 # ============== ADMIN SCHEMAS ==============
 

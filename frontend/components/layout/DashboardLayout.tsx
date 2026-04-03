@@ -2,22 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { 
-  LayoutDashboard, 
-  User, 
-  Calendar, 
-  Clock, 
-  MessageSquare,
-  Settings,
-  LogOut,
-  Menu,
-  X,
-  Heart
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Menu, User, LogOut } from "lucide-react";
+import Sidebar from "./Sidebar";
+import Link from "next/link";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -27,14 +16,25 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children, role }: DashboardLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, logout, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push("/login");
+  const getPhotoUrl = (photoUrl: string | null | undefined) => {
+    if (!photoUrl) return null;
+    if (photoUrl.startsWith("/")) {
+      return `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}${photoUrl}`;
     }
-  }, [isAuthenticated, isLoading, router]);
+    return photoUrl;
+  };
+
+  const photoUrl = getPhotoUrl(user?.photo_url);
+
+  // Reset image error when photoUrl changes (must be before early returns)
+  useEffect(() => {
+    setImageError(false);
+  }, [photoUrl]);
 
   if (isLoading) {
     return (
@@ -51,88 +51,41 @@ export default function DashboardLayout({ children, role }: DashboardLayoutProps
     return null;
   }
 
-  const navItems = role === "patient" ? [
-    { href: "/patient/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/patient/doctors", label: "Find Doctors", icon: User },
-    { href: "/patient/appointments", label: "Appointments", icon: Calendar },
-    { href: "/patient/chatbot", label: "AI Assistant", icon: MessageSquare },
-    { href: "/patient/profile", label: "Profile", icon: Settings },
-  ] : role === "doctor" ? [
-    { href: "/doctor/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/doctor/profile", label: "My Profile", icon: User },
-    { href: "/doctor/schedule", label: "Schedule", icon: Clock },
-    { href: "/doctor/appointments", label: "Appointments", icon: Calendar },
-    { href: "/doctor/profile", label: "Settings", icon: Settings },
-  ] : [
-    { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/admin/doctors", label: "Doctors", icon: User },
-    { href: "/admin/users", label: "Users", icon: Settings },
+  const patientNav = [
+    { href: "/patient/dashboard", label: "Dashboard" },
+    { href: "/patient/doctors", label: "Find Doctors" },
+    { href: "/patient/appointments", label: "Appointments" },
+    { href: "/patient/chatbot", label: "AI Assistant" },
+    { href: "/patient/profile", label: "Profile" },
+  ];
+  const doctorNav = [
+    { href: "/doctor/dashboard", label: "Dashboard" },
+    { href: "/doctor/profile", label: "My Profile" },
+    { href: "/doctor/schedule", label: "Schedule" },
+    { href: "/doctor/appointments", label: "Appointments" },
+  ];
+  const adminNav = [
+    { href: "/admin/dashboard", label: "Dashboard" },
+    { href: "/admin/doctors", label: "Doctors" },
+    { href: "/admin/users", label: "Users" },
   ];
 
-  const currentRoute = navItems.find(item => pathname === item.href);
+  const navMap = { patient: patientNav, doctor: doctorNav, admin: adminNav };
+  const currentRoute = navMap[role].find(item => pathname === item.href);
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 
-        transform transition-transform duration-200 ease-in-out
-        ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-      `}>
-        {/* Logo */}
-        <div className="flex items-center gap-2 px-6 py-5 border-b border-gray-200">
-          <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-            <Heart className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            HealthCare+
-          </span>
-        </div>
-
-        {/* Navigation */}
-        <nav className="p-4 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`
-                  flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors
-                  ${isActive
-                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
-                    : "text-gray-700 hover:bg-gray-100"
-                  }
-                `}
-              >
-                <Icon className="w-5 h-5" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Logout */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
-          <Button
-            onClick={logout}
-            variant="outline"
-            className="w-full justify-start gap-3"
-          >
-            <LogOut className="w-5 h-5" />
-            Logout
-          </Button>
-        </div>
-      </aside>
+      {/* Sidebar Component */}
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        role={role}
+      />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen">
@@ -149,14 +102,69 @@ export default function DashboardLayout({ children, role }: DashboardLayoutProps
               {currentRoute?.label || "Dashboard"}
             </h1>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <span className="text-sm text-gray-600 capitalize">{user.role}</span>
             </div>
-            <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white font-medium">
-              {user.name.charAt(0).toUpperCase()}
+
+            {/* User Avatar + Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-2 hover:bg-gray-100 rounded-lg p-1.5 transition-colors"
+              >
+                {photoUrl && !imageError ? (
+                  <img
+                    src={photoUrl}
+                    alt={user.name}
+                    className="w-9 h-9 rounded-full object-cover"
+                    onError={() => setImageError(true)}
+                  />
+                ) : (
+                  <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white font-medium">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </button>
+
+              {/* User Dropdown Menu */}
+              {showUserMenu && (
+                <>
+                  {/* Backdrop to close dropdown */}
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowUserMenu(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                    {/* User Info */}
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                      <p className="text-xs text-gray-500">{user.email}</p>
+                    </div>
+
+                    {/* Dashboard Link */}
+                    <Link
+                      href={`/${user.role}/dashboard`}
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      <User className="w-4 h-4" />
+                      Dashboard
+                    </Link>
+
+                    {/* Logout */}
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </header>
