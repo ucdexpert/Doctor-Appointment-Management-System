@@ -1,15 +1,27 @@
 import os
+import logging
 from groq import Groq
 from sqlalchemy.orm import Session
 from database import get_db
 
-# Validate GROQ_API_KEY before client initialization
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-if not GROQ_API_KEY:
-    raise ValueError("GROQ_API_KEY environment variable is not set")
+# Configure logging
+logger = logging.getLogger(__name__)
 
-# Initialize Groq client
-client = Groq(api_key=GROQ_API_KEY)
+# Initialize Groq client conditionally
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+client = None
+
+if not GROQ_API_KEY:
+    logger.warning("GROQ_API_KEY environment variable is not set. Chatbot will be disabled.")
+    logger.warning("Set GROQ_API_KEY in your .env file to enable AI features.")
+else:
+    try:
+        client = Groq(api_key=GROQ_API_KEY)
+        logger.info("Groq client initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize Groq client: {e}")
+        client = None
+
 # Configurable settings
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 GROQ_MAX_TOKENS = int(os.getenv("GROQ_MAX_TOKENS", "600"))
@@ -22,38 +34,51 @@ GROQ_TEMPERATURE = float(os.getenv("GROQ_TEMPERATURE", "0.7"))
 def get_doctors_context(db: Session) -> str:
     """
     Fetch all approved doctors from database with their schedules
+    Uses eager loading to prevent N+1 queries
     Returns formatted string context for AI system prompt
     """
     try:
         from models import Doctor, User, Schedule
+        from sqlalchemy.orm import joinedload
 
-        # Get all approved doctors
-        doctors = db.query(Doctor).filter(
-            Doctor.is_approved == True
-        ).all()
+        # Get all approved doctors with their user info in a single query using JOIN
+        doctors = (
+            db.query(Doctor, User)
+            .join(User, Doctor.user_id == User.id)
+            .filter(Doctor.is_approved == True)
+            .all()
+        )
 
         if not doctors:
             return "No doctors currently available in the system."
 
+        # Get all schedules for these doctors in ONE query (prevents N+1)
+        doctor_ids = [doctor.id for doctor, _ in doctors]
+        schedules = (
+            db.query(Schedule)
+            .filter(
+                Schedule.doctor_id.in_(doctor_ids),
+                Schedule.is_available == True
+            )
+            .all()
+        )
+
+        # Group schedules by doctor_id for efficient lookup
+        schedules_by_doctor = {}
+        for schedule in schedules:
+            if schedule.doctor_id not in schedules_by_doctor:
+                schedules_by_doctor[schedule.doctor_id] = []
+            schedules_by_doctor[schedule.doctor_id].append(schedule.day_of_week)
+
         doctors_context = []
 
-        for doctor in doctors:
-            # Get doctor's user info
-            user = db.query(User).filter(User.id == doctor.user_id).first()
-            doctor_name = user.name if user else "Unknown"
-
-            # Get doctor's schedule (available days)
-            schedules = db.query(Schedule).filter(
-                Schedule.doctor_id == doctor.id,
-                Schedule.is_available == True
-            ).all()
-
-            available_days = [s.day_of_week for s in schedules]
+        for doctor, user in doctors:
+            available_days = schedules_by_doctor.get(doctor.id, [])
             available_days_str = ", ".join(available_days) if available_days else "Not specified"
 
             # Build doctor info
             doctor_info = f"""
-- Dr. {doctor_name} (ID: {doctor.id})
+- Dr. {user.name} (ID: {doctor.id})
   - Specialization: {doctor.specialization}
   - City: {doctor.city or 'Not specified'}
   - Consultation Fee: PKR {doctor.consultation_fee}
@@ -146,6 +171,54 @@ IMPORTANT: If the "AVAILABLE DOCTORS IN DATABASE" section is empty or says "No d
 - Do NOT make up names like "Dr. Ahmed", "Dr. Khan", etc.
 - Politely inform the user that no doctors are available right now (in their language)
 - Suggest they check back later or contact support
+
+SMART BOOKING ASSISTANT CAPABILITIES:
+You can help users book appointments through natural language. When users say things like:
+- "kal cardiologist chahiye" (need cardiologist tomorrow)
+- "I want to book appointment next Monday"
+- "mujhe skin specialist chahiye 10th ko"
+- "book Dr. Ahmed for Friday"
+
+Do the following:
+1. UNDERSTAND the date: Parse relative dates like "kal" (tomorrow), "aaj" (today), "parson" (day after), days of week, or specific dates
+2. UNDERSTAND the specialization: Map symptoms or doctor type to specialization
+3. CHECK availability: Look at the available doctors list and match
+4. SUGGEST ACTION: Tell the user exactly which doctor to book with doctor ID and guide them
+
+DATE PARSING RULES:
+- "aaj" / "today" = current date
+- "kal" / "tomorrow" = next day
+- "parson" / "day after tomorrow" = 2 days from now
+- Days of week (Monday, Tuesday, etc.) = next occurrence of that day
+- Specific dates (10th, 15 March, etc.) = parse accordingly
+- Always convert to YYYY-MM-DD format when suggesting
+
+BOOKING RESPONSE FORMAT:
+When user wants to book, respond in this format:
+
+URDU:
+"میں نے آپ کے لیے ڈاکٹر [نام] (ID: [X]) کو [تاریخ] کو [وقت] کے لیے دیکھا ہے۔
+📅 تاریخ: [تاریخ]
+⏰ دستیاب اوقات: [اوقات]
+💰 فیس: PKR [فیس]
+
+براہ کرم بکنگ کے لیے یہ لنک استعمال کریں: /patient/book/[ID]"
+
+ROMAN URDU:
+"Maine aapke liye Dr. [Name] (ID: [X]) ko check kiya hai [Date] ke liye.
+📅 Date: [Date]
+⏰ Available times: [Times]
+💰 Fee: PKR [Fee]
+
+Booking ke liye ye link use karein: /patient/book/[ID]"
+
+ENGLISH:
+"I've checked Dr. [Name] (ID: [X]) for you on [Date].
+📅 Date: [Date]
+⏰ Available times: [Times]
+💰 Fee: PKR [Fee]
+
+Click here to book: /patient/book/[ID]"
 
 PLATFORM FEATURES:
 - Search doctors by specialization and city

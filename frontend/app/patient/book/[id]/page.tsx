@@ -10,27 +10,39 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import TimeSlotPicker from "@/components/appointment/TimeSlotPicker";
-import { 
-  Calendar, 
-  Clock, 
-  MapPin, 
-  DollarSign, 
-  ArrowLeft, 
-  CheckCircle, 
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  DollarSign,
+  ArrowLeft,
+  CheckCircle,
   Loader2,
   Stethoscope,
   Star,
   User,
   Shield,
   ChevronRight,
-  Info
+  Info,
+  RefreshCw,
+  AlertCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import confetti from "canvas-confetti";
+import { motion } from "framer-motion";
 
 interface TimeSlot {
   time: string;
   isAvailable: boolean;
+}
+
+interface BookingSuccessData {
+  doctorName: string;
+  date: string;
+  time: string;
+  fee: string;
+  reason: string;
 }
 
 export default function BookAppointmentPage() {
@@ -45,6 +57,8 @@ export default function BookAppointmentPage() {
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [reason, setReason] = useState("");
+  const [bookingSuccess, setBookingSuccess] = useState<BookingSuccessData | null>(null);
+  const [slotError, setSlotError] = useState("");
 
   // Get min date (today) in YYYY-MM-DD format
   const today = new Date().toISOString().split("T")[0];
@@ -95,6 +109,7 @@ export default function BookAppointmentPage() {
 
   const loadAvailableSlots = async () => {
     setSlotsLoading(true);
+    setSlotError("");
     try {
       const response = await doctorsAPI.getSlots(parseInt(doctorId), selectedDate);
       const slots: string[] = response.data.slots || [];
@@ -103,11 +118,23 @@ export default function BookAppointmentPage() {
         slots.map((time) => ({ time, isAvailable: true }))
       );
       setSelectedSlot(""); // Reset selected slot when date changes
+      
+      if (slots.length === 0) {
+        setSlotError("No slots available for this date. Please try another date.");
+      }
     } catch (error: unknown) {
-      toast.error("Failed to load available slots");
+      console.error("Slot loading error:", error);
+      setSlotError("Failed to load slots. Please try again.");
       setAvailableSlots([]);
     } finally {
       setSlotsLoading(false);
+    }
+  };
+
+  const handleRefreshSlots = async () => {
+    if (selectedDate) {
+      await loadAvailableSlots();
+      toast.info("Slots refreshed");
     }
   };
 
@@ -128,11 +155,35 @@ export default function BookAppointmentPage() {
         reason: reason || undefined,
       });
 
-      toast.success("Appointment booked successfully!");
-      router.push("/patient/appointments");
+      // Trigger confetti
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6"]
+      });
+
+      // Show success screen
+      setBookingSuccess({
+        doctorName: doctor?.user?.name || "Doctor",
+        date: formatDate(selectedDate),
+        time: selectedSlot,
+        fee: `PKR ${formatFee(doctor?.consultation_fee || 0)}`,
+        reason: reason || "Not specified"
+      });
+
+      toast.success("Appointment booked successfully! 🎉");
     } catch (error: any) {
       const message = error?.response?.data?.detail || "Failed to book appointment";
-      toast.error(message);
+      
+      // Handle double booking specifically
+      if (message.includes("already booked") || message.includes("slot")) {
+        toast.error("⚠️ This slot was just booked by someone else. Please select another slot.");
+        // Refresh slots to show real-time availability
+        await loadAvailableSlots();
+      } else {
+        toast.error(message);
+      }
     } finally {
       setBookingLoading(false);
     }
@@ -167,33 +218,146 @@ export default function BookAppointmentPage() {
     <DashboardLayout role="patient">
       <div className="max-w-6xl mx-auto w-full">
         {/* ── Back Button ── */}
-        <Link 
-          href={`/patient/doctors/${doctorId}`}
-          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-indigo-600 transition-colors mb-6 group"
-        >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          Back to Profile
-        </Link>
+        {!bookingSuccess && (
+          <Link
+            href={`/patient/doctors/${doctorId}`}
+            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-indigo-600 transition-colors mb-6 group"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            Back to Profile
+          </Link>
+        )}
 
         {/* ── Page Header ── */}
-        <div 
-          className="mb-8"
-          style={{ animation: "fadeSlideUp 0.5s ease-out both" }}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-indigo-600" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Book Appointment</h1>
-              <p className="text-sm text-gray-500">
-                Select a date and time slot for your visit
-              </p>
+        {!bookingSuccess && (
+          <div
+            className="mb-8"
+            style={{ animation: "fadeSlideUp 0.5s ease-out both" }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-indigo-600" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Book Appointment</h1>
+                <p className="text-sm text-gray-500">
+                  Select a date and time slot for your visit
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        {/* ── Success Screen ── */}
+        {bookingSuccess ? (
+          <div
+            className="max-w-2xl mx-auto"
+            style={{ animation: "fadeSlideUp 0.6s ease-out both" }}
+          >
+            <div className="bg-white rounded-3xl border-2 border-green-200 shadow-xl overflow-hidden">
+              {/* Success Header */}
+              <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-8 text-center relative overflow-hidden">
+                <div className="absolute inset-0 opacity-10">
+                  <div className="absolute top-4 left-8 w-20 h-20 bg-white rounded-full"></div>
+                  <div className="absolute bottom-6 right-12 w-16 h-16 bg-white rounded-full"></div>
+                </div>
+                
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", delay: 0.2 }}
+                  className="relative z-10 w-24 h-24 mx-auto mb-4 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center"
+                >
+                  <CheckCircle className="w-16 h-16 text-white" />
+                </motion.div>
+                
+                <motion.h2
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-3xl font-bold text-white mb-2"
+                >
+                  Booking Confirmed! 🎉
+                </motion.h2>
+                
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-green-100"
+                >
+                  Your appointment has been successfully booked
+                </motion.p>
+              </div>
+
+              {/* Appointment Details */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="p-8 space-y-4"
+              >
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Appointment Details</h3>
+                
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-xl">
+                    <User className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-600">Doctor</p>
+                      <p className="font-semibold text-gray-900">Dr. {bookingSuccess.doctorName}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-4 bg-purple-50 rounded-xl">
+                    <Calendar className="w-5 h-5 text-purple-600 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-600">Date & Time</p>
+                      <p className="font-semibold text-gray-900">{bookingSuccess.date}</p>
+                      <p className="text-sm text-purple-600">at {bookingSuccess.time}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-4 bg-green-50 rounded-xl">
+                    <span className="text-sm font-bold text-green-600 mt-0.5">PKR</span>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-600">Consultation Fee</p>
+                      <p className="font-semibold text-gray-900">{bookingSuccess.fee}</p>
+                    </div>
+                  </div>
+
+                  {bookingSuccess.reason && bookingSuccess.reason !== "Not specified" && (
+                    <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
+                      <Shield className="w-5 h-5 text-gray-600 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-600">Reason</p>
+                        <p className="text-gray-900">{bookingSuccess.reason}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
+                  <Button
+                    onClick={() => router.push("/patient/appointments")}
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                  >
+                    <Calendar className="w-4 h-4 mr-2" />
+                    View All Appointments
+                  </Button>
+                  <Button
+                    onClick={() => router.push(`/patient/doctors/${doctorId}`)}
+                    variant="outline"
+                    className="sm:flex-none"
+                  >
+                    Back to Doctor
+                  </Button>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        ) : (
+          <div className="grid lg:grid-cols-3 gap-6">
           {/* ── Doctor Info Card ── */}
           <div 
             className="lg:col-span-1"
@@ -300,18 +464,43 @@ export default function BookAppointmentPage() {
 
                 {/* Time Slot Selection */}
                 {selectedDate && (
-                  <div 
+                  <div
                     className="space-y-2"
                     style={{ animation: "fadeSlideUp 0.3s ease-out both" }}
                   >
-                    <Label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-indigo-600" />
-                      Select Time Slot <span className="text-red-500">*</span>
-                    </Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-indigo-600" />
+                        Select Time Slot <span className="text-red-500">*</span>
+                      </Label>
+                      {availableSlots.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleRefreshSlots}
+                          disabled={slotsLoading}
+                          className="text-xs text-indigo-600 hover:text-indigo-700 flex items-center gap-1 disabled:opacity-50"
+                        >
+                          <RefreshCw className={`w-3 h-3 ${slotsLoading ? 'animate-spin' : ''}`} />
+                          Refresh
+                        </button>
+                      )}
+                    </div>
                     {slotsLoading ? (
                       <div className="text-center py-10 bg-gray-50 rounded-xl border border-gray-200">
                         <Loader2 className="w-8 h-8 animate-spin mx-auto text-indigo-600 mb-3" />
                         <p className="text-sm text-gray-600 font-medium">Loading available slots...</p>
+                      </div>
+                    ) : slotError ? (
+                      <div className="text-center py-10 bg-yellow-50 rounded-xl border-2 border-dashed border-yellow-300">
+                        <AlertCircle className="w-12 h-12 mx-auto text-yellow-500 mb-3" />
+                        <p className="text-yellow-700 font-medium">{slotError}</p>
+                        <button
+                          type="button"
+                          onClick={handleRefreshSlots}
+                          className="mt-3 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                        >
+                          Try refreshing slots
+                        </button>
                       </div>
                     ) : availableSlots.length === 0 ? (
                       <div className="text-center py-10 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
@@ -405,6 +594,7 @@ export default function BookAppointmentPage() {
             </div>
           </div>
         </div>
+        )}
       </div>
     </DashboardLayout>
   );

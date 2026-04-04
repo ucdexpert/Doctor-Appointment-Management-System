@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, User, MapPin, BookOpen, Briefcase, FileText, Camera, X } from "lucide-react";
 import { toast } from "sonner";
-import { doctorsAPI, uploadAPI, authAPI } from "@/lib/api";
+import { doctorsAPI, uploadAPI, authAPI, doctorProfileAPI } from "@/lib/api";
 
 const specializations = [
   "General Physician",
@@ -76,46 +76,13 @@ export default function DoctorProfilePage() {
     setLoading(true);
 
     try {
-      // Get fresh token
-      const token = localStorage.getItem('token');
-
-      if (!token) {
-        throw new Error('Not authenticated. Please login again.');
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/doctors/profile`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          specialization: formData.specialization,
-          qualification: formData.qualification,
-          experience_years: formData.experience_years,
-          consultation_fee: formData.consultation_fee,
-          bio: formData.bio || null,
-          city: formData.city,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Please login again to continue');
-        }
-        throw new Error(data.detail || 'Failed to create profile');
-      }
+      await doctorProfileAPI.create(formData);
 
       toast.success("Profile submitted for approval! Admin will review shortly.");
       router.push("/doctor/dashboard");
     } catch (error: any) {
-      const message = error?.message || "Failed to create profile";
+      const message = error?.response?.data?.detail || "Failed to create profile";
       toast.error(message);
-      if (message.includes('login')) {
-        router.push('/login');
-      }
     } finally {
       setLoading(false);
     }

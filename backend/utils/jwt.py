@@ -8,7 +8,8 @@ load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "10080"))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 TOKEN_EXPIRE_HOURS = int(os.getenv("TOKEN_EXPIRE_HOURS", "24"))
 
 if not SECRET_KEY:
@@ -16,18 +17,39 @@ if not SECRET_KEY:
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    """Create JWT token with user data"""
+    """Create JWT access token with user data"""
     to_encode = data.copy()
-    
+
     # Convert sub to string (python-jose requires string)
     if "sub" in to_encode:
         to_encode["sub"] = str(to_encode["sub"])
-    
+
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None):
+    """Create JWT refresh token with longer expiration"""
+    to_encode = data.copy()
     
+    # Convert sub to string
+    if "sub" in to_encode:
+        to_encode["sub"] = str(to_encode["sub"])
+    
+    # Add token type
+    to_encode.update({"type": "refresh"})
+
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -37,6 +59,18 @@ def verify_token(token: str) -> Optional[dict]:
     """Verify JWT token and return payload"""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError:
+        return None
+
+
+def verify_refresh_token(token: str) -> Optional[dict]:
+    """Verify refresh token and ensure it's the correct type"""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        # Check if it's actually a refresh token
+        if payload.get("type") != "refresh":
+            return None
         return payload
     except JWTError:
         return None

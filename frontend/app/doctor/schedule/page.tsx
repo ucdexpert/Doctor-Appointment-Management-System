@@ -47,21 +47,10 @@ export default function SchedulePage() {
 
   const loadSchedules = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/schedules/my`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setSchedules(data);
-      }
+      const response = await schedulesAPI.getMySchedule();
+      setSchedules(response.data);
     } catch (error: any) {
-      if (error?.message !== 'Failed to load schedules') {
-        toast.error("Failed to load schedules");
-      }
+      toast.error("Failed to load schedules");
     } finally {
       setLoading(false);
     }
@@ -72,33 +61,20 @@ export default function SchedulePage() {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
-      const url = editingId
-        ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/schedules/${editingId}`
-        : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/schedules`;
-      
-      const response = await fetch(url, {
-        method: editingId ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || 'Failed to save schedule');
+      let response;
+      if (editingId) {
+        response = await schedulesAPI.update(editingId, formData);
+      } else {
+        response = await schedulesAPI.create(formData);
       }
-      
+
       toast.success(editingId ? "Schedule updated" : "Schedule added");
       loadSchedules();
       setShowForm(false);
       setEditingId(null);
       resetForm();
     } catch (error: any) {
-      toast.error(error.message || "Failed to save schedule");
+      toast.error(error?.response?.data?.detail || "Failed to save schedule");
     } finally {
       setLoading(false);
     }
@@ -120,18 +96,7 @@ export default function SchedulePage() {
     if (!confirm("Are you sure you want to delete this schedule?")) return;
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/schedules/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete schedule');
-      }
-      
+      await schedulesAPI.delete(id);
       toast.success("Schedule deleted");
       loadSchedules();
     } catch (error: any) {

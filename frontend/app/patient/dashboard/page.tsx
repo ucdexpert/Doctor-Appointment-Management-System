@@ -4,24 +4,29 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { 
-  Calendar, 
-  Clock, 
-  Users, 
-  Star, 
-  Loader2, 
+import {
+  Calendar,
+  Clock,
+  Users,
   Heart,
   ArrowRight,
   Activity,
-  TrendingUp,
   CheckCircle2,
   XCircle,
   Sparkles,
   ChevronRight,
-  MessageSquare
+  MessageSquare,
+  Shield,
+  Star,
+  TrendingUp,
+  Zap,
+  MapPin,
+  Loader2,
 } from "lucide-react";
-import { appointmentsAPI } from "@/lib/api";
+import { appointmentsAPI, doctorsAPI } from "@/lib/api";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
+import DoctorCard from "@/components/doctor/DoctorCard";
 
 interface PatientStats {
   total: number;
@@ -30,106 +35,179 @@ interface PatientStats {
   cancelled: number;
 }
 
+interface Recommendation {
+  doctor_id: number;
+  doctor_name: string;
+  specialization: string;
+  city: string | null;
+  consultation_fee: number;
+  avg_rating: number;
+  experience_years: number;
+  available_slots_today: number;
+  recommendation_score: number;
+  reason: string;
+}
+
 export default function PatientDashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState<PatientStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-
-  // Inject custom styles
-  useEffect(() => {
-    const id = "dashboard-styles";
-    if (!document.getElementById(id)) {
-      const style = document.createElement("style");
-      style.id = id;
-      style.textContent = `
-        @keyframes fadeSlideUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-        }
-        @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-  }, []);
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        setError(false);
-        const response = await appointmentsAPI.getStats();
-        setStats(response.data);
-      } catch (err: unknown) {
-        console.error("Failed to fetch patient stats:", err);
-        setError(true);
-        toast.error("Failed to load dashboard data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchStats();
+    fetchRecommendations();
   }, []);
+
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      setError(false);
+      const response = await appointmentsAPI.getStats();
+      setStats(response.data);
+    } catch (err: unknown) {
+      console.error("Failed to fetch patient stats:", err);
+      setError(true);
+      toast.error("Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchRecommendations = async () => {
+    setRecommendationsLoading(true);
+    try {
+      const response = await doctorsAPI.getQuickBookRecommendations();
+      setRecommendations(response.data.recommendations || []);
+    } catch (error) {
+      console.error("Failed to fetch recommendations:", error);
+    } finally {
+      setRecommendationsLoading(false);
+    }
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+  };
 
   return (
     <DashboardLayout role="patient">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* ── Welcome Banner ── */}
-        <div 
-          className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-2xl p-8 text-white shadow-xl"
-          style={{ animation: "fadeSlideUp 0.5s ease-out both" }}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="max-w-7xl mx-auto space-y-6"
+      >
+        {/* Welcome Banner */}
+        <motion.div
+          variants={itemVariants}
+          className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-3xl p-8 md:p-10 text-white shadow-2xl"
         >
           {/* Background decorations */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32">
-            <div className="absolute inset-0 bg-white/5 rounded-full animate-ping"></div>
-          </div>
-          
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-5 h-5 text-yellow-300" style={{ animation: "float 2s ease-in-out infinite" }} />
-              <span className="text-sm font-medium text-indigo-100">Welcome to your health dashboard</span>
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-3">
-              Welcome back, {user?.name}! 👋
-            </h2>
-            <p className="text-lg text-indigo-100 max-w-2xl">
-              Take control of your health. Book appointments with top doctors and manage your healthcare journey.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link 
-                href="/patient/doctors"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-indigo-600 rounded-xl font-semibold text-sm hover:bg-indigo-50 transition-all shadow-lg hover:shadow-xl hover:scale-105"
-              >
-                <Calendar className="w-4 h-4" />
-                Book Appointment
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link 
-                href="/patient/appointments"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/20 text-white rounded-xl font-semibold text-sm hover:bg-white/30 transition-all border border-white/30"
-              >
-                <Clock className="w-4 h-4" />
-                View Appointments
-              </Link>
-            </div>
-          </div>
-        </div>
+          <motion.div
+            animate={{
+              scale: [1, 1.2, 1],
+              rotate: [0, 90, 0],
+            }}
+            transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"
+          />
+          <motion.div
+            animate={{
+              scale: [1, 1.3, 1],
+              rotate: [0, -90, 0],
+            }}
+            transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"
+          />
+          <motion.div
+            animate={{ scale: [1, 1.5, 1], opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32"
+          >
+            <div className="absolute inset-0 bg-white/5 rounded-full animate-ping" />
+          </motion.div>
 
-        {/* ── Quick Actions ── */}
-        <div 
-          className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"
-          style={{ animation: "fadeSlideUp 0.5s ease-out 0.1s both" }}
-        >
+          <div className="relative z-10">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+              className="flex items-center gap-2 mb-4"
+            >
+              <motion.div
+                animate={{ rotate: [0, 360] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              >
+                <Sparkles className="w-5 h-5 text-yellow-300" />
+              </motion.div>
+              <span className="text-sm font-medium text-indigo-100">
+                Welcome to your health dashboard
+              </span>
+            </motion.div>
+            
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
+            >
+              Welcome back, {user?.name}! 👋
+            </motion.h2>
+            
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="text-lg text-indigo-100 max-w-2xl mb-8"
+            >
+              Take control of your health. Book appointments with top doctors and manage your healthcare journey.
+            </motion.p>
+            
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="flex flex-wrap gap-3"
+            >
+              <Link href="/patient/doctors">
+                <motion.div
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 rounded-xl font-semibold text-sm hover:bg-indigo-50 transition-all shadow-lg"
+                >
+                  <Calendar className="w-4 h-4" />
+                  Book Appointment
+                  <ArrowRight className="w-4 h-4" />
+                </motion.div>
+              </Link>
+              <Link href="/patient/appointments">
+                <motion.div
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-white/20 text-white rounded-xl font-semibold text-sm hover:bg-white/30 transition-all border border-white/30"
+                >
+                  <Clock className="w-4 h-4" />
+                  View Appointments
+                </motion.div>
+              </Link>
+            </motion.div>
+          </div>
+        </motion.div>
+
+        {/* Quick Actions */}
+        <motion.div variants={itemVariants} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <QuickActionCard
             icon={<Calendar className="w-6 h-6" />}
             title="Book Appointment"
@@ -137,7 +215,7 @@ export default function PatientDashboard() {
             href="/patient/doctors"
             color="from-blue-500 to-cyan-500"
             bgColor="from-blue-50 to-cyan-50"
-            delay={0.15}
+            delay={0.1}
           />
           <QuickActionCard
             icon={<Clock className="w-6 h-6" />}
@@ -149,55 +227,62 @@ export default function PatientDashboard() {
             delay={0.2}
           />
           <QuickActionCard
-            icon={<Users className="w-6 h-6" />}
-            title="My Doctors"
+            icon={<Heart className="w-6 h-6" />}
+            title="My Favorites"
             description="Favorite doctors list"
             href="/patient/favorites"
-            color="from-purple-500 to-pink-500"
-            bgColor="from-purple-50 to-pink-50"
-            delay={0.25}
+            color="from-pink-500 to-rose-500"
+            bgColor="from-pink-50 to-rose-50"
+            delay={0.3}
           />
           <QuickActionCard
             icon={<MessageSquare className="w-6 h-6" />}
             title="AI Assistant"
             description="Get health advice"
             href="/patient/chatbot"
-            color="from-orange-500 to-red-500"
-            bgColor="from-orange-50 to-red-50"
-            delay={0.3}
+            color="from-purple-500 to-indigo-500"
+            bgColor="from-purple-50 to-indigo-50"
+            delay={0.4}
           />
-        </div>
+        </motion.div>
 
-        {/* ── Stats Grid ── */}
-        <div 
-          className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm"
-          style={{ animation: "fadeSlideUp 0.5s ease-out 0.2s both" }}
+        {/* Stats Grid */}
+        <motion.div
+          variants={itemVariants}
+          className="bg-white rounded-3xl border border-gray-200 p-6 md:p-8 shadow-lg"
         >
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-xl font-bold text-gray-900">Quick Stats</h3>
               <p className="text-sm text-gray-500 mt-1">Your appointment overview</p>
             </div>
-            <Link 
+            <Link
               href="/patient/appointments"
-              className="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+              className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium group"
             >
               View All
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-              <span className="ml-3 text-gray-600">Loading stats...</span>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="h-28 bg-gray-200 animate-skeleton rounded-2xl"
+                />
+              ))}
             </div>
           ) : error ? (
             <div className="text-center py-12 text-gray-500">
               <p>Failed to load data. Please try again.</p>
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <motion.div
+              variants={containerVariants}
+              className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"
+            >
               <StatCard
                 label="Total Appointments"
                 value={stats?.total ?? 0}
@@ -205,6 +290,7 @@ export default function PatientDashboard() {
                 color="from-blue-500 to-cyan-500"
                 bgColor="from-blue-50 to-cyan-50"
                 borderColor="border-blue-200"
+                delay={0.1}
               />
               <StatCard
                 label="Upcoming"
@@ -213,6 +299,7 @@ export default function PatientDashboard() {
                 color="from-green-500 to-emerald-500"
                 bgColor="from-green-50 to-emerald-50"
                 borderColor="border-green-200"
+                delay={0.2}
               />
               <StatCard
                 label="Completed"
@@ -221,6 +308,7 @@ export default function PatientDashboard() {
                 color="from-purple-500 to-pink-500"
                 bgColor="from-purple-50 to-pink-50"
                 borderColor="border-purple-200"
+                delay={0.3}
               />
               <StatCard
                 label="Cancelled"
@@ -229,20 +317,25 @@ export default function PatientDashboard() {
                 color="from-red-500 to-orange-500"
                 bgColor="from-red-50 to-orange-50"
                 borderColor="border-red-200"
+                delay={0.4}
               />
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
 
-        {/* ── Health Tips Section ── */}
-        <div 
-          className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100 p-6"
-          style={{ animation: "fadeSlideUp 0.5s ease-out 0.3s both" }}
+        {/* Health Tips Section */}
+        <motion.div
+          variants={itemVariants}
+          className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-3xl border border-blue-100 p-6 md:p-8"
         >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-              <Heart className="w-5 h-5 text-white" />
-            </div>
+          <div className="flex items-center gap-3 mb-6">
+            <motion.div
+              whileHover={{ rotate: 360 }}
+              transition={{ duration: 0.5 }}
+              className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg"
+            >
+              <Heart className="w-6 h-6 text-white" />
+            </motion.div>
             <div>
               <h3 className="text-lg font-bold text-gray-900">Health Tips</h3>
               <p className="text-sm text-gray-600">Stay healthy, stay happy</p>
@@ -253,20 +346,119 @@ export default function PatientDashboard() {
               icon="💧"
               title="Stay Hydrated"
               description="Drink at least 8 glasses of water daily for optimal health."
+              delay={0.1}
             />
             <HealthTipCard
               icon="🏃"
               title="Stay Active"
               description="Exercise for 30 minutes daily to maintain fitness."
+              delay={0.2}
             />
             <HealthTipCard
               icon="😴"
               title="Get Rest"
               description="Sleep 7-8 hours every night for proper recovery."
+              delay={0.3}
             />
           </div>
-        </div>
-      </div>
+        </motion.div>
+
+        {/* Quick Book Recommendations */}
+        {recommendations.length > 0 && (
+          <motion.div
+            variants={itemVariants}
+            className="bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 rounded-3xl border border-yellow-200 p-6 md:p-8"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <motion.div
+                  whileHover={{ rotate: 360 }}
+                  transition={{ duration: 0.5 }}
+                  className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-600 flex items-center justify-center shadow-lg"
+                >
+                  <Zap className="w-6 h-6 text-white" />
+                </motion.div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Quick Book</h3>
+                  <p className="text-sm text-gray-600">Available doctors today</p>
+                </div>
+              </div>
+              <Link
+                href="/patient/doctors"
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+              >
+                View All
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            {recommendationsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-yellow-600" />
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {recommendations.slice(0, 3).map((rec, index) => (
+                  <motion.div
+                    key={rec.doctor_id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ y: -5 }}
+                    className="bg-white rounded-xl border border-yellow-200 p-4 hover:shadow-lg transition-all"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900">
+                          Dr. {rec.doctor_name}
+                        </h4>
+                        <p className="text-sm text-gray-600">{rec.specialization}</p>
+                      </div>
+                      <div className="flex items-center gap-1 text-yellow-600">
+                        <Star className="w-4 h-4 fill-current" />
+                        <span className="text-sm font-semibold">{rec.avg_rating}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      {rec.city && (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <MapPin className="w-4 h-4" />
+                          <span>{rec.city}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Fee:</span>
+                        <span className="font-semibold text-gray-900">PKR {rec.consultation_fee}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Available slots:</span>
+                        <span className="font-semibold text-green-600">
+                          {rec.available_slots_today}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 px-3 py-2 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <p className="text-xs text-yellow-700 font-medium">
+                        ✨ {rec.reason}
+                      </p>
+                    </div>
+
+                    <Link
+                      href={`/patient/book/${rec.doctor_id}`}
+                      className="mt-3 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white rounded-lg font-medium text-sm transition-all"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      Book Now
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </motion.div>
     </DashboardLayout>
   );
 }
@@ -281,66 +473,103 @@ function QuickActionCard({ icon, title, description, href, color, bgColor, delay
   delay: number;
 }) {
   return (
-    <Link
-      href={href}
-      className="group relative block p-5 bg-white rounded-2xl border border-gray-200 hover:border-indigo-200 hover:shadow-lg transition-all duration-300 overflow-hidden"
-      style={{ animation: `fadeSlideUp 0.5s ease-out ${delay}s both` }}
-    >
-      {/* Hover gradient background */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${bgColor} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
-      
-      <div className="relative z-10">
-        <div className={`w-12 h-12 bg-gradient-to-br ${color} rounded-xl flex items-center justify-center text-white mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-md`}>
-          {icon}
+    <Link href={href}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay }}
+        whileHover={{ y: -8, scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        className="group relative block p-6 bg-white rounded-2xl border border-gray-200 hover:border-blue-200 hover:shadow-xl transition-all duration-300 overflow-hidden"
+      >
+        {/* Hover gradient background */}
+        <div className={`absolute inset-0 bg-gradient-to-br ${bgColor} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+
+        <div className="relative z-10">
+          <motion.div
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            className={`w-14 h-14 bg-gradient-to-br ${color} rounded-xl flex items-center justify-center text-white mb-4 shadow-lg`}
+          >
+            {icon}
+          </motion.div>
+          <h4 className="font-semibold text-gray-900 mb-1 group-hover:text-blue-700 transition-colors">
+            {title}
+          </h4>
+          <p className="text-sm text-gray-600">{description}</p>
+          <div className="mt-3 flex items-center gap-1.5 text-sm font-medium text-blue-600 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+            Get Started
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </div>
         </div>
-        <h4 className="font-semibold text-gray-900 mb-1 group-hover:text-indigo-700 transition-colors">{title}</h4>
-        <p className="text-sm text-gray-600 group-hover:text-gray-700 transition-colors">{description}</p>
-        <div className="mt-3 flex items-center gap-1.5 text-sm font-medium text-indigo-600 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-          Get Started
-          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-        </div>
-      </div>
+      </motion.div>
     </Link>
   );
 }
 
-function StatCard({ label, value, icon, color, bgColor, borderColor }: {
+function StatCard({ label, value, icon, color, bgColor, borderColor, delay }: {
   label: string;
   value: number;
   icon: React.ReactNode;
   color: string;
   bgColor: string;
   borderColor: string;
+  delay: number;
 }) {
   return (
-    <div className={`relative overflow-hidden p-5 bg-gradient-to-br ${bgColor} rounded-xl border ${borderColor} hover:shadow-md transition-all duration-300 group`}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+      whileHover={{ y: -5, scale: 1.02 }}
+      className={`relative overflow-hidden p-5 bg-gradient-to-br ${bgColor} rounded-2xl border ${borderColor} hover:shadow-lg transition-all duration-300`}
+    >
       <div className="flex items-start justify-between">
         <div>
-          <div className={`text-3xl font-bold bg-gradient-to-r ${color} bg-clip-text text-transparent mb-1`}>
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: delay + 0.2, type: "spring" }}
+            className={`text-3xl font-bold bg-gradient-to-r ${color} bg-clip-text text-transparent mb-1`}
+          >
             {value}
-          </div>
+          </motion.div>
           <div className="text-sm text-gray-600 font-medium">{label}</div>
         </div>
-        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${color} flex items-center justify-center text-white group-hover:scale-110 transition-transform shadow-md`}>
+        <motion.div
+          whileHover={{ scale: 1.1 }}
+          className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center text-white shadow-lg`}
+        >
           {icon}
-        </div>
+        </motion.div>
       </div>
       {/* Decorative corner */}
-      <div className={`absolute -bottom-2 -right-2 w-16 h-16 bg-gradient-to-br ${color} opacity-10 rounded-full blur-xl`}></div>
-    </div>
+      <div className={`absolute -bottom-2 -right-2 w-20 h-20 bg-gradient-to-br ${color} opacity-10 rounded-full blur-xl`} />
+    </motion.div>
   );
 }
 
-function HealthTipCard({ icon, title, description }: {
+function HealthTipCard({ icon, title, description, delay }: {
   icon: string;
   title: string;
   description: string;
+  delay: number;
 }) {
   return (
-    <div className="bg-white rounded-xl p-4 border border-indigo-100 hover:shadow-md transition-all hover:scale-105 cursor-pointer">
-      <div className="text-2xl mb-2">{icon}</div>
-      <h4 className="font-semibold text-gray-900 text-sm mb-1">{title}</h4>
-      <p className="text-xs text-gray-600 leading-relaxed">{description}</p>
-    </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+      whileHover={{ y: -5, scale: 1.02 }}
+      className="bg-white rounded-xl p-5 border border-blue-100 hover:shadow-lg transition-all cursor-pointer"
+    >
+      <motion.div
+        whileHover={{ scale: 1.2 }}
+        className="text-3xl mb-3"
+      >
+        {icon}
+      </motion.div>
+      <h4 className="font-semibold text-gray-900 mb-2">{title}</h4>
+      <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
+    </motion.div>
   );
 }

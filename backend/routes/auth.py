@@ -4,7 +4,7 @@ from passlib.context import CryptContext
 from database import get_db
 from models import User
 from schemas import UserRegister, UserLogin, UserResponse, Token, UserUpdate, ChangePassword, MessageResponse
-from utils.jwt import create_access_token
+from utils.jwt import create_access_token, create_refresh_token, verify_refresh_token
 from middleware.auth import get_current_user
 from utils.email import send_password_reset_email
 from utils.limiter import limiter
@@ -54,11 +54,13 @@ def register(request: Request, user_data: UserRegister, db: Session = Depends(ge
     db.commit()
     db.refresh(new_user)
 
-    # Generate JWT token
+    # Generate JWT tokens
     access_token = create_access_token(data={"sub": new_user.id})
+    refresh_token = create_refresh_token(data={"sub": new_user.id})
 
     return {
         "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer",
         "user": new_user
     }
@@ -67,43 +69,45 @@ def register(request: Request, user_data: UserRegister, db: Session = Depends(ge
 @router.post("/login", response_model=Token)
 @limiter.limit("5/minute")
 def login(request: Request, credentials: UserLogin, db: Session = Depends(get_db)):
-    """Login user and return JWT token"""
-    
+    """Login user and return JWT tokens"""
+
     # Find user by email
     user = db.query(User).filter(User.email == credentials.email).first()
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
-    
+
     # Verify password
     if not verify_password(credentials.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
-    
+
     # Check if user is active
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is inactive"
         )
-    
+
     # Check if user is banned
     if user.is_banned:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is banned"
         )
-    
-    # Generate JWT token
+
+    # Generate JWT tokens
     access_token = create_access_token(data={"sub": user.id})
-    
+    refresh_token = create_refresh_token(data={"sub": user.id})
+
     return {
         "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer",
         "user": user
     }
@@ -242,3 +246,70 @@ def reset_password(
     db.commit()
 
     return {"message": "Password reset successful"}
+
+
+@router.post("/refresh", response_model=Token)
+def refresh_token(
+    data: dict,
+    db: Session = Depends(get_db)
+):
+    """Refresh access token using refresh token"""
+    
+    refresh_token_str = data.get("refresh_token")
+    
+    if not refresh_token_str:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Refresh token is required"
+        )
+    
+    # Verify the refresh token
+    payload = verify_refresh_token(refresh_token_str)
+    
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token"
+        )
+    
+    # Get user ID from payload
+    user_id = payload.get("sub")
+    
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token payload"
+        )
+    
+    # Get user from database
+    user = db.query(User).filter(User.id == int(user_id)).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found"
+        )
+    
+    # Check if user is still active and not banned
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is inactive"
+        )
+    
+    if user.is_banned:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is banned"
+        )
+    
+    # Generate new tokens
+    new_access_token = create_access_token(data={"sub": user.id})
+    new_refresh_token = create_refresh_token(data={"sub": user.id})
+    
+    return {
+        "access_token": new_access_token,
+        "refresh_token": new_refresh_token,
+        "token_type": "bearer",
+        "user": user
+    }

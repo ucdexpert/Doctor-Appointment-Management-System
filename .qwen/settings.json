@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npm install *)",
-      "Bash(pip install *)"
+      "Bash(pip install *)",
+      "Bash(npm run *)",
+      "Bash(findstr *)"
     ]
   },
   "$version": 3

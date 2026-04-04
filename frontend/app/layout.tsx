@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ReactQueryProvider } from "@/providers/ReactQueryProvider";
 import { Toaster } from "sonner";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -27,12 +28,14 @@ export default function RootLayout({
       className={inter.variable}
     >
       <body className="min-h-full flex flex-col font-sans antialiased">
-        <AuthProvider>
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
-          <Toaster richColors position="top-right" />
-        </AuthProvider>
+        <ReactQueryProvider>
+          <AuthProvider>
+            <Navbar />
+            <main className="flex-1">{children}</main>
+            <Footer />
+            <Toaster richColors position="top-right" />
+          </AuthProvider>
+        </ReactQueryProvider>
       </body>
     </html>
   );

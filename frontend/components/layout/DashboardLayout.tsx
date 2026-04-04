@@ -25,7 +25,7 @@ export default function DashboardLayout({ children, role }: DashboardLayoutProps
   const router = useRouter();
   const pathname = usePathname();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [imageError, setImageError] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -106,18 +106,6 @@ export default function DashboardLayout({ children, role }: DashboardLayoutProps
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Inject custom styles */}
-      <style jsx global>{`
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-      `}</style>
-
       {/* Sidebar Component */}
       <Sidebar
         isOpen={sidebarOpen}
@@ -126,7 +114,7 @@ export default function DashboardLayout({ children, role }: DashboardLayoutProps
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
         {/* Top Bar */}
         <header className="bg-white border-b border-gray-200 px-4 md:px-6 py-4 flex items-center justify-between sticky top-0 z-30 shadow-sm">
           <div className="flex items-center gap-3">

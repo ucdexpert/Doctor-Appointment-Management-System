@@ -43,11 +43,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       const response = await authAPI.login({ email, password });
-      const { access_token, user: userData } = response.data;
+      const { access_token, refresh_token, user: userData } = response.data;
 
       setToken(access_token);
       setUser(userData);
       localStorage.setItem('token', access_token);
+      localStorage.setItem('refreshToken', refresh_token);
       localStorage.setItem('user', JSON.stringify(userData));
     } catch (error) {
       throw error;
@@ -57,11 +58,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (name: string, email: string, password: string, role: string, phone?: string) => {
     try {
       const response = await authAPI.register({ name, email, password, role, phone });
-      const { access_token, user: userData } = response.data;
+      const { access_token, refresh_token, user: userData } = response.data;
 
       setToken(access_token);
       setUser(userData);
       localStorage.setItem('token', access_token);
+      localStorage.setItem('refreshToken', refresh_token);
       localStorage.setItem('user', JSON.stringify(userData));
     } catch (error) {
       throw error;
@@ -78,6 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(null);
     setUser(null);
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
   };
 

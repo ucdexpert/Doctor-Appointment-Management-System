@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { searchHistoryAPI } from "@/lib/api";
 import { Search, Clock, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 
 interface SearchHistory {
   id: number;
@@ -15,8 +14,11 @@ interface SearchHistory {
   created_at: string;
 }
 
-export default function SearchHistorySection() {
-  const router = useRouter();
+interface SearchHistorySectionProps {
+  onSearchClick?: (search: SearchHistory) => void;
+}
+
+export default function SearchHistorySection({ onSearchClick }: SearchHistorySectionProps) {
   const [searches, setSearches] = useState<SearchHistory[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -34,16 +36,8 @@ export default function SearchHistorySection() {
   };
 
   const handleSearchClick = (search: SearchHistory) => {
-    // Parse filters if exists
-    if (search.filters) {
-      try {
-        const filters = JSON.parse(search.filters);
-        router.push(`/patient/doctors?search=${encodeURIComponent(search.search_query)}&${new URLSearchParams(filters).toString()}`);
-      } catch {
-        router.push(`/patient/doctors?search=${encodeURIComponent(search.search_query)}`);
-      }
-    } else {
-      router.push(`/patient/doctors?search=${encodeURIComponent(search.search_query)}`);
+    if (onSearchClick) {
+      onSearchClick(search);
     }
   };
 

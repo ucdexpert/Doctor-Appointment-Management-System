@@ -245,18 +245,18 @@ def get_available_slots(
     db: Session = Depends(get_db)
 ):
     """Get available time slots for a doctor on a specific date"""
-    
+
     from datetime import datetime, time, timedelta
     from models import Schedule, Appointment
-    
+
     doctor = db.query(Doctor).filter(Doctor.id == doctor_id).first()
-    
+
     if not doctor:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Doctor not found"
         )
-    
+
     # Parse the date
     try:
         target_date = datetime.strptime(date, "%Y-%m-%d").date()
@@ -266,44 +266,154 @@ def get_available_slots(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid date format. Use YYYY-MM-DD"
         )
-    
+
     # Get doctor's schedule for that day of week
     schedule = db.query(Schedule).filter(
         Schedule.doctor_id == doctor_id,
         Schedule.day_of_week == day_name,
         Schedule.is_available == True
     ).first()
-    
+
     if not schedule:
         return {"slots": [], "message": "Doctor not available on this day"}
-    
+
     # Generate all possible slots
     start_datetime = datetime.combine(target_date, schedule.start_time)
     end_datetime = datetime.combine(target_date, schedule.end_time)
     slot_duration = timedelta(minutes=schedule.slot_duration)
-    
+
     all_slots = []
     current_time = start_datetime
-    
+
     while current_time + slot_duration <= end_datetime:
         all_slots.append(current_time.time().strftime("%H:%M"))
         current_time += slot_duration
-    
+
     # Get already booked slots for this date
     booked_appointments = db.query(Appointment).filter(
         Appointment.doctor_id == doctor_id,
         Appointment.appointment_date == target_date,
         Appointment.status.in_(["pending", "confirmed"])
     ).all()
-    
+
     booked_slots = [apt.time_slot.strftime("%H:%M") for apt in booked_appointments]
-    
+
     # Filter out booked slots
     available_slots = [slot for slot in all_slots if slot not in booked_slots]
-    
+
     return {
         "date": date,
         "doctor_id": doctor_id,
         "slots": available_slots,
         "slot_duration": schedule.slot_duration
+    }
+
+
+@router.get("/recommendations/quick-book")
+def get_quick_book_recommendations(
+    current_user: User = Depends(require_role("patient")),
+    db: Session = Depends(get_db)
+):
+    """
+    Smart recommendations for quick booking:
+    - Doctors available within next 2 hours
+    - Based on patient's search history
+    - Top-rated doctors in patient's city
+    """
+    from datetime import datetime, timedelta, time as dtime
+    from models import SearchHistory, Schedule, Appointment
+
+    # Get patient's most searched specializations
+    search_history = db.query(SearchHistory).filter(
+        SearchHistory.patient_id == current_user.id
+    ).order_by(SearchHistory.created_at.desc()).limit(10).all()
+
+    # Extract preferred specializations from search history
+    preferred_specs = []
+    for search in search_history:
+        if search.search_query:
+            preferred_specs.append(search.search_query.lower())
+
+    # Get today's date and current time
+    now = datetime.now()
+    today = now.date()
+    today_name = today.strftime("%A")
+    current_time = now.time()
+    two_hours_later = (now + timedelta(hours=2)).time()
+
+    # Find doctors available within next 2 hours
+    doctors_query = db.query(Doctor, User).join(User, Doctor.user_id == User.id)
+    doctors_query = doctors_query.filter(Doctor.is_approved == True)
+
+    recommendations = []
+
+    for doctor, user in doctors_query.all():
+        # Check if doctor has schedule for today
+        schedule = db.query(Schedule).filter(
+            Schedule.doctor_id == doctor.id,
+            Schedule.day_of_week == today_name,
+            Schedule.is_available == True
+        ).first()
+
+        if not schedule:
+            continue
+
+        # Check if there are available slots within next 2 hours
+        start_datetime = datetime.combine(today, schedule.start_time)
+        end_datetime = datetime.combine(today, schedule.end_time)
+        slot_duration = timedelta(minutes=schedule.slot_duration)
+
+        # Count available slots in next 2 hours
+        available_count = 0
+        current_slot = start_datetime if start_datetime.time() > current_time else datetime.combine(today, current_time)
+
+        while current_slot + slot_duration <= end_datetime and current_slot.time() <= two_hours_later:
+            # Check if slot is booked
+            existing = db.query(Appointment).filter(
+                Appointment.doctor_id == doctor.id,
+                Appointment.appointment_date == today,
+                Appointment.time_slot == current_slot.time(),
+                Appointment.status.in_(["pending", "confirmed"])
+            ).first()
+
+            if not existing:
+                available_count += 1
+
+            current_slot += slot_duration
+
+        if available_count > 0:
+            # Calculate score based on multiple factors
+            score = 0
+
+            # Rating factor (0-40 points)
+            score += float(doctor.avg_rating) * 8
+
+            # Availability factor (0-30 points)
+            score += min(available_count * 10, 30)
+
+            # Search history match (0-30 points)
+            if doctor.specialization.lower() in preferred_specs:
+                score += 30
+
+            recommendations.append({
+                "doctor_id": doctor.id,
+                "doctor_name": user.name,
+                "specialization": doctor.specialization,
+                "city": doctor.city,
+                "consultation_fee": float(doctor.consultation_fee),
+                "avg_rating": float(doctor.avg_rating),
+                "experience_years": doctor.experience_years,
+                "available_slots_today": available_count,
+                "recommendation_score": score,
+                "reason": "Available today" if doctor.specialization.lower() not in preferred_specs else "Matches your search history"
+            })
+
+    # Sort by recommendation score
+    recommendations.sort(key=lambda x: x["recommendation_score"], reverse=True)
+
+    # Return top 5
+    return {
+        "recommendations": recommendations[:5],
+        "total_found": len(recommendations),
+        "generated_at": now.isoformat()
     }

@@ -1,55 +1,46 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { doctorsAPI } from "@/lib/api";
+import { doctorsAPI, searchHistoryAPI } from "@/lib/api";
 import { Doctor } from "@/types";
+import DoctorCard from "@/components/doctor/DoctorCard";
+import SearchHistorySection from "@/components/doctor/SearchHistorySection";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   MapPin,
-  Clock,
-  Star,
-  ArrowRight,
+  DollarSign,
   SlidersHorizontal,
   X,
-  Stethoscope,
   Loader2,
-  User,
-  Heart,
-  BookmarkPlus,
-  Sparkles,
-  ChevronDown,
-  Check,
-  Wallet,
-  Award,
+  Stethoscope,
+  Filter,
+  ArrowUpDown,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import Link from "next/link";
 
-// ─── Constants ───────────────────────────────────────────────────────────────
-
-const SPECIALTIES = [
-  "General Physician",
+// Specializations list
+const SPECIALIZATIONS = [
   "Cardiologist",
   "Dermatologist",
-  "Orthopedic",
-  "Neurologist",
-  "Gynecologist",
-  "Pediatrician",
-  "ENT Specialist",
-  "Eye Specialist",
-  "Psychiatrist",
-  "Urologist",
+  "Endocrinologist",
   "Gastroenterologist",
+  "General Physician",
+  "Gynecologist",
+  "Neurologist",
+  "Oncologist",
+  "Ophthalmologist",
+  "Orthopedic",
+  "Pediatrician",
+  "Psychiatrist",
+  "Pulmonologist",
+  "Urologist",
 ];
 
 const CITIES = [
-  "Karachi",
   "Lahore",
+  "Karachi",
   "Islamabad",
   "Rawalpindi",
   "Faisalabad",
@@ -57,547 +48,533 @@ const CITIES = [
   "Peshawar",
   "Quetta",
   "Sialkot",
-  "Gujranwala",
+  "Hyderabad",
 ];
 
 const SORT_OPTIONS = [
-  { value: "rating", label: "Top Rated", icon: Star },
-  { value: "experience", label: "Most Experienced", icon: Award },
-  { value: "fee", label: "Lowest Fee", icon: Wallet },
+  { label: "Name A-Z", value: "name_asc" },
+  { label: "Name Z-A", value: "name_desc" },
+  { label: "Fee: Low to High", value: "fee_asc" },
+  { label: "Fee: High to Low", value: "fee_desc" },
+  { label: "Experience", value: "experience" },
+  { label: "Rating", value: "rating" },
 ];
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function getPhotoUrl(photoUrl: string | null | undefined): string | null {
-  if (!photoUrl) return null;
-  if (photoUrl.startsWith("/")) {
-    return `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}${photoUrl}`;
-  }
-  return photoUrl;
-}
-
-function formatFee(fee: string): string {
-  return Number(fee).toLocaleString("en-PK");
-}
-
-// ─── Doctor Card ─────────────────────────────────────────────────────────────
-
-function DoctorCard({ doctor, index }: { doctor: Doctor; index: number }) {
-  const photoUrl = getPhotoUrl(doctor.user?.photo_url);
-  const rating = parseFloat(doctor.avg_rating?.toString() || "0");
-  const roundedRating = Math.round(rating);
-
-  return (
-    <div
-      className="group relative bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg hover:border-indigo-200 transition-all duration-300 overflow-hidden"
-      style={{
-        animation: "fadeSlideUp 0.5s ease-out both",
-        animationDelay: `${index * 0.07}s`,
-      }}
-    >
-      {/* Top gradient accent */}
-      <div className="h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
-
-      <div className="p-5">
-        {/* Header: Avatar + Name */}
-        <div className="flex items-start gap-3.5 mb-4">
-          {/* Avatar */}
-          <div className="relative shrink-0">
-            {photoUrl ? (
-              <img
-                src={photoUrl}
-                alt={doctor.user?.name || "Doctor"}
-                className="w-14 h-14 rounded-xl object-cover ring-2 ring-gray-100"
-              />
-            ) : (
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold ring-2 ring-indigo-100">
-                {doctor.user?.name?.charAt(0) || "D"}
-              </div>
-            )}
-            {/* Favorite indicator */}
-            <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-white shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:text-red-500 text-gray-400">
-              <BookmarkPlus className="w-3 h-3" />
-            </div>
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-gray-900 text-[15px] truncate leading-tight">
-              Dr. {doctor.user?.name}
-            </h3>
-            <Badge variant="outline" className="mt-1.5 text-[11px] font-medium bg-indigo-50 text-indigo-700 border-indigo-100">
-              <Stethoscope className="w-3 h-3 mr-1" />
-              {doctor.specialization}
-            </Badge>
-          </div>
-        </div>
-
-        {/* Rating */}
-        <div className="flex items-center gap-1.5 mb-4">
-          <div className="flex items-center gap-0.5">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Star
-                key={star}
-                className={`w-3.5 h-3.5 ${
-                  star <= roundedRating
-                    ? "fill-amber-400 text-amber-400"
-                    : "fill-gray-100 text-gray-200"
-                }`}
-              />
-            ))}
-          </div>
-          <span className="text-xs font-semibold text-gray-700">
-            {rating.toFixed(1)}
-          </span>
-          <span className="text-xs text-gray-400">
-            ({doctor.total_reviews} review{doctor.total_reviews !== 1 ? "s" : ""})
-          </span>
-        </div>
-
-        {/* Info rows */}
-        <div className="space-y-2.5 mb-5">
-          {doctor.city && (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center">
-                <MapPin className="w-3.5 h-3.5 text-gray-400" />
-              </div>
-              <span>{doctor.city}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center">
-              <Clock className="w-3.5 h-3.5 text-gray-400" />
-            </div>
-            <span>{doctor.experience_years} years experience</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <div className="w-7 h-7 rounded-lg bg-green-100 flex items-center justify-center">
-              <span className="text-[10px] font-bold text-green-600">PKR</span>
-            </div>
-            <span>
-              <span className="font-semibold text-gray-900">
-                {formatFee(doctor.consultation_fee)}
-              </span>{" "}
-              consultation
-            </span>
-          </div>
-        </div>
-
-        {/* Bio */}
-        {doctor.bio && (
-          <p className="text-xs text-gray-400 line-clamp-2 mb-4 leading-relaxed">
-            {doctor.bio}
-          </p>
-        )}
-
-        {/* Actions */}
-        <div className="flex gap-2 pt-1">
-          <Link
-            href={`/patient/doctors/${doctor.id}`}
-            className="flex-1"
-          >
-            <button className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm hover:shadow">
-              View Profile
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-            </button>
-          </Link>
-          <Link href={`/patient/book/${doctor.id}`}>
-            <button className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-indigo-200 text-indigo-700 text-sm font-medium hover:bg-indigo-50 transition-colors">
-              Book
-            </button>
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Filter Chip ─────────────────────────────────────────────────────────────
-
-function FilterChip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-        active
-          ? "bg-indigo-600 text-white shadow-sm"
-          : "bg-white text-gray-600 border border-gray-200 hover:border-indigo-300 hover:text-indigo-600"
-      }`}
-    >
-      {label}
-      {active && <Check className="w-3 h-3" />}
-    </button>
-  );
-}
-
-// ─── Loading Skeleton ────────────────────────────────────────────────────────
-
-function SkeletonCard() {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-pulse">
-      <div className="h-1.5 bg-gray-200" />
-      <div className="p-5 space-y-4">
-        <div className="flex items-start gap-3.5">
-          <div className="w-14 h-14 rounded-xl bg-gray-200" />
-          <div className="flex-1 space-y-2">
-            <div className="h-4 bg-gray-200 rounded w-2/3" />
-            <div className="h-5 bg-gray-100 rounded w-1/3" />
-          </div>
-        </div>
-        <div className="h-3 bg-gray-100 rounded w-1/2" />
-        <div className="space-y-2">
-          <div className="h-4 bg-gray-100 rounded" />
-          <div className="h-4 bg-gray-100 rounded" />
-          <div className="h-4 bg-gray-100 rounded w-2/3" />
-        </div>
-        <div className="flex gap-2 pt-1">
-          <div className="flex-1 h-10 bg-gray-200 rounded-xl" />
-          <div className="h-10 w-20 bg-gray-100 rounded-xl" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Empty State ─────────────────────────────────────────────────────────────
-
-function DoctorsEmptyState({ onClear }: { onClear: () => void }) {
-  return (
-    <div
-      className="flex flex-col items-center justify-center py-24 text-center"
-      style={{ animation: "fadeSlideUp 0.5s ease-out both" }}
-    >
-      <div className="w-20 h-20 rounded-2xl bg-indigo-50 flex items-center justify-center mb-5">
-        <Search className="w-10 h-10 text-indigo-300" />
-      </div>
-      <h3 className="text-lg font-semibold text-gray-800 mb-2">
-        No doctors found
-      </h3>
-      <p className="text-sm text-gray-500 max-w-sm mb-6">
-        We couldn't find any doctors matching your criteria. Try adjusting your search or filters.
-      </p>
-      <button
-        onClick={onClear}
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors"
-      >
-        <X className="w-4 h-4" />
-        Clear All Filters
-      </button>
-    </div>
-  );
-}
-
-// ─── Main Page ───────────────────────────────────────────────────────────────
-
-export default function DoctorsPage() {
-  const router = useRouter();
+export default function FindDoctorsPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
-
-  // Filters
-  const [specialization, setSpecialization] = useState("");
-  const [city, setCity] = useState("");
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [selectedSpecialization, setSelectedSpecialization] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
   const [minFee, setMinFee] = useState("");
   const [maxFee, setMaxFee] = useState("");
-  const [sortBy, setSortBy] = useState("rating");
-
-  // ── Inject animation keyframes ────────────────────────────────────────────
+  const [sortBy, setSortBy] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
-    const id = "doctors-animations";
-    if (!document.getElementById(id)) {
-      const style = document.createElement("style");
-      style.id = id;
-      style.textContent = `
-        @keyframes fadeSlideUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-  }, []);
+    fetchDoctors();
+  }, [selectedSpecialization, selectedCity, minFee, maxFee, sortBy, page, search]);
 
-  // ── Load doctors ──────────────────────────────────────────────────────────
-
-  const loadDoctors = async () => {
+  const fetchDoctors = async () => {
     setLoading(true);
+    setError("");
     try {
-      const params: Record<string, string | number> = {
-        page: 1,
-        limit: 50,
-      };
-      if (specialization) params.specialization = specialization;
-      if (city) params.city = city;
+      const params: any = { page };
+      if (search) params.search = search;
+      if (selectedSpecialization) params.specialization = selectedSpecialization;
+      if (selectedCity) params.city = selectedCity;
       if (minFee) params.min_fee = minFee;
       if (maxFee) params.max_fee = maxFee;
-      if (sortBy) params.sort_by = sortBy;
+      if (sortBy) params.sort = sortBy;
 
       const response = await doctorsAPI.getAll(params);
-      setDoctors(response.data.doctors);
-    } catch {
-      toast.error("Failed to load doctors");
+      const newDoctors = response.data.doctors || response.data;
+
+      if (page === 1) {
+        setDoctors(newDoctors);
+        if (newDoctors.length === 0) {
+          setError("no_results");
+        }
+      } else {
+        setDoctors((prev) => [...prev, ...newDoctors]);
+      }
+
+      setHasMore(newDoctors.length === 10);
+    } catch (error: any) {
+      console.error("Failed to fetch doctors:", error);
+      setError("server_error");
+      setDoctors([]);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadDoctors();
-  }, [specialization, city, minFee, maxFee, sortBy]);
-
-  // ── Filtered results ──────────────────────────────────────────────────────
-
-  const filteredDoctors = useMemo(() => {
-    let results = [...doctors];
-
-    // Client-side search
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      results = results.filter(
-        (d) =>
-          d.user?.name?.toLowerCase().includes(term) ||
-          d.specialization.toLowerCase().includes(term)
-      );
+  const handleSearch = () => {
+    setPage(1);
+    
+    // Save search history (non-blocking)
+    if (search.trim()) {
+      const filters = {
+        specialization: selectedSpecialization || undefined,
+        city: selectedCity || undefined,
+        min_fee: minFee || undefined,
+        max_fee: maxFee || undefined,
+        sort: sortBy || undefined,
+      };
+      
+      // Remove undefined values
+      Object.keys(filters).forEach(key => {
+        if ((filters as Record<string, any>)[key] === undefined) {
+          delete (filters as Record<string, any>)[key];
+        }
+      });
+      
+      searchHistoryAPI.save({
+        search_query: search.trim(),
+        filters: Object.keys(filters).length > 0 ? JSON.stringify(filters) : undefined,
+      }).catch(err => console.error("Failed to save search:", err));
     }
-
-    return results;
-  }, [doctors, searchTerm]);
-
-  // ── Active filter count ───────────────────────────────────────────────────
-
-  const activeFilterCount = [specialization, city, minFee, maxFee].filter(Boolean).length;
-
-  // ── Reset all ─────────────────────────────────────────────────────────────
-
-  const clearAll = () => {
-    setSearchTerm("");
-    setSpecialization("");
-    setCity("");
-    setMinFee("");
-    setMaxFee("");
-    setSortBy("rating");
+    
+    // fetchDoctors will be called automatically due to useEffect dependency on search
   };
 
-  // ── Render ───────────────────────────────────────────────────────────────
+  const handleClearFilters = () => {
+    setSelectedSpecialization("");
+    setSelectedCity("");
+    setMinFee("");
+    setMaxFee("");
+    setSortBy("");
+    setPage(1);
+    setSearch("");
+  };
+
+  const resetFilters = () => {
+    handleClearFilters();
+  };
+
+  const activeFiltersCount = [selectedSpecialization, selectedCity, minFee, maxFee, sortBy, search].filter(Boolean).length;
 
   return (
     <DashboardLayout role="patient">
-      <div className="max-w-7xl mx-auto w-full px-3 sm:px-6 lg:px-8">
-        {/* ── Header ── */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
-            <Stethoscope className="w-5 h-5 text-indigo-600" />
-          </div>
-          <div>
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">Find Doctors</h1>
-            <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">
-              Search and book appointments with top doctors
-            </p>
-          </div>
-        </div>
-
-        {/* ── Search Bar ── */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-4 mb-3">
-          <div className="flex gap-2">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Search doctors..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 h-10 text-sm border-gray-200 focus:border-indigo-400 focus:ring-indigo-400"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`relative inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium border transition-colors shrink-0 ${
-                showFilters || activeFilterCount > 0
-                  ? "bg-indigo-600 text-white border-indigo-600"
-                  : "bg-white text-gray-700 border-gray-200 hover:border-indigo-300"
-              }`}
+      <div className="max-w-7xl mx-auto">
+        {/* Page Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <motion.div
+              whileHover={{ rotate: 360 }}
+              transition={{ duration: 0.5 }}
+              className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg"
             >
-              <SlidersHorizontal className="w-4 h-4" />
-              <span className="hidden sm:inline">Filters</span>
-              {activeFilterCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                  {activeFilterCount}
+              <Stethoscope className="w-6 h-6 text-white" />
+            </motion.div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+                Find a Doctor
+              </h1>
+              <p className="text-sm text-gray-600">
+                Search from {doctors.length}+ verified doctors
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Search Bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white rounded-2xl border border-gray-200 p-4 mb-6 shadow-sm"
+        >
+          <div className="flex flex-col md:flex-row gap-3">
+            {/* Search Input */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by doctor name or specialization..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-colors"
+              />
+            </div>
+
+            {/* Search Button */}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleSearch}
+              className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-blue-500/30 transition-all"
+            >
+              Search
+            </motion.button>
+
+            {/* Filter Toggle (Mobile) */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowFilters(!showFilters)}
+              className="md:hidden relative px-4 py-3 border-2 border-gray-200 rounded-xl hover:border-blue-500 transition-colors"
+            >
+              <Filter className="w-5 h-5" />
+              {activeFiltersCount > 0 && (
+                <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                  {activeFiltersCount}
                 </span>
               )}
-            </button>
+            </motion.button>
           </div>
+        </motion.div>
 
-          {/* ── Expanded Filters ── */}
-          {showFilters && (
-            <div
-              className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
-              style={{ animation: "fadeSlideUp 0.3s ease-out both" }}
-            >
-              {/* Specialization */}
-              <div>
-                <label className="text-xs font-medium text-gray-500 mb-1.5 block">
-                  Specialization
-                </label>
-                <select
-                  value={specialization}
-                  onChange={(e) => setSpecialization(e.target.value)}
-                  className="w-full h-10 px-3 rounded-lg border border-gray-200 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
-                >
-                  <option value="">All Specializations</option>
-                  {SPECIALTIES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* City */}
-              <div>
-                <label className="text-xs font-medium text-gray-500 mb-1.5 block">
-                  City
-                </label>
-                <select
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="w-full h-10 px-3 rounded-lg border border-gray-200 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
-                >
-                  <option value="">All Cities</option>
-                  {CITIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Fee Range */}
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <label className="text-xs font-medium text-gray-500 mb-1.5 block">
-                    Min Fee (PKR)
-                  </label>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={minFee}
-                    onChange={(e) => setMinFee(e.target.value)}
-                    className="h-10 text-sm"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="text-xs font-medium text-gray-500 mb-1.5 block">
-                    Max Fee
-                  </label>
-                  <Input
-                    type="number"
-                    placeholder="5000"
-                    value={maxFee}
-                    onChange={(e) => setMaxFee(e.target.value)}
-                    className="h-10 text-sm"
-                  />
-                </div>
-              </div>
-
-              {/* Sort */}
-              <div>
-                <label className="text-xs font-medium text-gray-500 mb-1.5 block">
-                  Sort By
-                </label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full h-10 px-3 rounded-lg border border-gray-200 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
-                >
-                  {SORT_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Reset */}
-              <div className="sm:col-span-2 lg:col-span-4 flex justify-end">
-                <button
-                  onClick={clearAll}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
-                >
-                  <X className="w-3.5 h-3.5" />
-                  Reset All
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ── Quick Specialty Filter ── */}
-        <div className="mb-5">
-          <div className="flex flex-wrap gap-2">
-            <FilterChip
-              label="All"
-              active={!specialization}
-              onClick={() => setSpecialization("")}
+        <div className="flex gap-6">
+          {/* Filters Sidebar (Desktop) */}
+          <motion.aside
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className={`hidden md:block w-72 shrink-0 space-y-4`}
+          >
+            {/* Search History */}
+            <SearchHistorySection 
+              onSearchClick={(search) => {
+                setSearch(search.search_query);
+                if (search.filters) {
+                  try {
+                    const filters = JSON.parse(search.filters);
+                    if (filters.specialization) setSelectedSpecialization(filters.specialization);
+                    if (filters.city) setSelectedCity(filters.city);
+                    if (filters.min_fee) setMinFee(filters.min_fee);
+                    if (filters.max_fee) setMaxFee(filters.max_fee);
+                    if (filters.sort) setSortBy(filters.sort);
+                  } catch {
+                    // Ignore parse errors
+                  }
+                }
+                setPage(1);
+              }}
             />
-            {SPECIALTIES.map((spec) => (
-              <FilterChip
-                key={spec}
-                label={spec}
-                active={specialization === spec}
-                onClick={() => setSpecialization(specialization === spec ? "" : spec)}
-              />
-            ))}
-          </div>
-        </div>
+            
+            <FiltersPanel
+              selectedSpecialization={selectedSpecialization}
+              setSelectedSpecialization={setSelectedSpecialization}
+              selectedCity={selectedCity}
+              setSelectedCity={setSelectedCity}
+              minFee={minFee}
+              setMinFee={setMinFee}
+              maxFee={maxFee}
+              setMaxFee={setMaxFee}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              resetFilters={resetFilters}
+              activeFiltersCount={activeFiltersCount}
+            />
+          </motion.aside>
 
-        {/* ── Results Header ── */}
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm text-gray-500">
-            <span className="font-semibold text-gray-900">{filteredDoctors.length}</span>{" "}
-            doctor{filteredDoctors.length !== 1 ? "s" : ""} found
-            {searchTerm && (
-              <span className="text-indigo-600">
-                {" "}for "{searchTerm}"
-              </span>
+          {/* Mobile Filters */}
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 md:hidden"
+                onClick={() => setShowFilters(false)}
+              >
+                <motion.div
+                  initial={{ x: "-100%" }}
+                  animate={{ x: 0 }}
+                  exit={{ x: "-100%" }}
+                  transition={{ type: "spring", damping: 25 }}
+                  className="absolute left-0 top-0 h-full w-80 bg-white p-4 overflow-y-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-gray-900">Filters</h3>
+                    <button
+                      onClick={() => setShowFilters(false)}
+                      className="p-2 hover:bg-gray-100 rounded-xl"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <FiltersPanel
+                    selectedSpecialization={selectedSpecialization}
+                    setSelectedSpecialization={setSelectedSpecialization}
+                    selectedCity={selectedCity}
+                    setSelectedCity={setSelectedCity}
+                    minFee={minFee}
+                    setMinFee={setMinFee}
+                    maxFee={maxFee}
+                    setMaxFee={setMaxFee}
+                    sortBy={sortBy}
+                    setSortBy={setSortBy}
+                    resetFilters={resetFilters}
+                    activeFiltersCount={activeFiltersCount}
+                  />
+                </motion.div>
+              </motion.div>
             )}
-          </p>
-        </div>
+          </AnimatePresence>
 
-        {/* ── Grid ── */}
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <SkeletonCard key={i} />
-            ))}
+          {/* Doctors List */}
+          <div className="flex-1">
+            {loading && page === 1 ? (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div
+                    key={i}
+                    className="h-80 bg-gray-200 animate-skeleton rounded-2xl"
+                  />
+                ))}
+              </div>
+            ) : error === "server_error" ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-red-200"
+              >
+                <motion.div
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="w-20 h-20 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-6"
+                >
+                  <Stethoscope className="w-10 h-10 text-red-400" />
+                </motion.div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Unable to Load Doctors
+                </h3>
+                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                  We're having trouble connecting to our servers. Please check your connection and try again.
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={fetchDoctors}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+                  >
+                    Try Again
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleClearFilters}
+                    className="px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:border-blue-500 hover:text-blue-600 transition-all"
+                  >
+                    Clear Filters
+                  </motion.button>
+                </div>
+              </motion.div>
+            ) : error === "no_results" || doctors.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-center py-20 bg-white rounded-3xl border border-gray-200"
+              >
+                <motion.div
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center mx-auto mb-6"
+                >
+                  <Stethoscope className="w-10 h-10 text-blue-400" />
+                </motion.div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  No Doctors Found
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Try adjusting your filters or search criteria
+                </p>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleClearFilters}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold"
+                >
+                  Reset Filters
+                </motion.button>
+              </motion.div>
+            ) : (
+              <>
+                {/* Results Count */}
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-sm text-gray-600">
+                    Showing <span className="font-semibold text-gray-900">{doctors.length}</span> doctors
+                  </p>
+                  {activeFiltersCount > 0 && (
+                    <button
+                      onClick={resetFilters}
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                    >
+                      <X className="w-4 h-4" />
+                      Clear all filters
+                    </button>
+                  )}
+                </div>
+
+                {/* Doctors Grid */}
+                <motion.div
+                  layout
+                  className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+                >
+                  <AnimatePresence>
+                    {doctors.map((doctor, index) => (
+                      <DoctorCard key={doctor.id} doctor={doctor} index={index} />
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+
+                {/* Load More */}
+                {hasMore && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-center mt-8"
+                  >
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setPage((p) => p + 1)}
+                      disabled={loading}
+                      className="px-8 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:border-blue-500 hover:text-blue-600 transition-all disabled:opacity-50"
+                    >
+                      {loading ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Loading...
+                        </span>
+                      ) : (
+                        "Load More"
+                      )}
+                    </motion.button>
+                  </motion.div>
+                )}
+              </>
+            )}
           </div>
-        ) : filteredDoctors.length === 0 ? (
-          <DoctorsEmptyState onClear={clearAll} />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredDoctors.map((doctor, i) => (
-              <DoctorCard key={doctor.id} doctor={doctor} index={i} />
-            ))}
-          </div>
-        )}
+        </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+// Filters Panel Component
+function FiltersPanel({
+  selectedSpecialization,
+  setSelectedSpecialization,
+  selectedCity,
+  setSelectedCity,
+  minFee,
+  setMinFee,
+  maxFee,
+  setMaxFee,
+  sortBy,
+  setSortBy,
+  resetFilters,
+  activeFiltersCount,
+}: any) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <SlidersHorizontal className="w-5 h-5 text-blue-600" />
+          <h3 className="font-bold text-gray-900">Filters</h3>
+        </div>
+        {activeFiltersCount > 0 && (
+          <button
+            onClick={resetFilters}
+            className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+          >
+            Reset
+          </button>
+        )}
+      </div>
+
+      {/* Specialization */}
+      <div>
+        <label className="text-sm font-medium text-gray-700 mb-2 block">
+          Specialization
+        </label>
+        <select
+          value={selectedSpecialization}
+          onChange={(e) => setSelectedSpecialization(e.target.value)}
+          className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-colors bg-white"
+        >
+          <option value="">All Specializations</option>
+          {SPECIALIZATIONS.map((spec) => (
+            <option key={spec} value={spec}>
+              {spec}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* City */}
+      <div>
+        <label className="text-sm font-medium text-gray-700 mb-2 block">
+          City
+        </label>
+        <select
+          value={selectedCity}
+          onChange={(e) => setSelectedCity(e.target.value)}
+          className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-colors bg-white"
+        >
+          <option value="">All Cities</option>
+          {CITIES.map((city) => (
+            <option key={city} value={city}>
+              {city}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Fee Range */}
+      <div>
+        <label className="text-sm font-medium text-gray-700 mb-2 block">
+          Fee Range (PKR)
+        </label>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            placeholder="Min"
+            value={minFee}
+            onChange={(e) => setMinFee(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-colors"
+          />
+          <input
+            type="number"
+            placeholder="Max"
+            value={maxFee}
+            onChange={(e) => setMaxFee(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-colors"
+          />
+        </div>
+      </div>
+
+      {/* Sort By */}
+      <div>
+        <label className="text-sm font-medium text-gray-700 mb-2 block">
+          Sort By
+        </label>
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-colors bg-white"
+        >
+          <option value="">Default</option>
+          {SORT_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
   );
 }

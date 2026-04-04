@@ -10,6 +10,22 @@ export const api = axios.create({
   },
 });
 
+// Track if refresh is in progress to prevent multiple refresh calls
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (value: unknown) => void; reject: (error: Error) => void }> = [];
+
+const processQueue = (error: Error | null, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+
+  failedQueue = [];
+};
+
 // Add token to requests
 api.interceptors.request.use((config) => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -19,15 +35,80 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle response errors
+// Handle response errors with automatic token refresh
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+  async (error) => {
+    const originalRequest = error.config;
+
+    // If error is 401 and we haven't retried yet
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      // Check if we have a refresh token
+      const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refreshToken') : null;
+      
+      if (!refreshToken) {
+        // No refresh token, redirect to login
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+        return Promise.reject(error);
+      }
+
+      // If already refreshing, queue this request
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const response = await axios.post(`${API_URL}/auth/refresh`, {
+          refresh_token: refreshToken,
+        });
+
+        const { access_token, refresh_token: newRefreshToken, user } = response.data;
+
+        // Save new tokens
+        localStorage.setItem('token', access_token);
+        localStorage.setItem('refreshToken', newRefreshToken);
+        if (user) {
+          localStorage.setItem('user', JSON.stringify(user));
+        }
+
+        // Update authorization header
+        api.defaults.headers.common.Authorization = `Bearer ${access_token}`;
+        originalRequest.headers.Authorization = `Bearer ${access_token}`;
+
+        // Process queued requests
+        processQueue(null, access_token);
+
+        return api(originalRequest);
+      } catch (refreshError) {
+        // Refresh failed, clear storage and redirect
+        processQueue(error as Error, null);
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
+
     return Promise.reject(error);
   }
 );
@@ -74,6 +155,9 @@ export const doctorsAPI = {
 
   getSlots: (doctorId: number, date: string) =>
     api.get(`/doctors/${doctorId}/slots`, { params: { date } }),
+
+  getQuickBookRecommendations: () =>
+    api.get('/doctors/recommendations/quick-book'),
 };
 
 // Appointment APIs
@@ -107,15 +191,27 @@ export const appointmentsAPI = {
 export const schedulesAPI = {
   getMySchedule: () =>
     api.get('/schedules/my'),
-  
-  create: (data: Record<string, unknown>) =>
+
+  create: (data: { day_of_week: string; start_time: string; end_time: string; slot_duration: number; is_available?: boolean }) =>
     api.post('/schedules', data),
-  
-  update: (id: number, data: Record<string, unknown>) =>
+
+  update: (id: number, data: { day_of_week?: string; start_time?: string; end_time?: string; slot_duration?: number; is_available?: boolean }) =>
     api.put(`/schedules/${id}`, data),
-  
+
   delete: (id: number) =>
     api.delete(`/schedules/${id}`),
+};
+
+// Doctor profile APIs
+export const doctorProfileAPI = {
+  create: (data: { specialization: string; qualification: string; experience_years: number; consultation_fee: number; bio?: string; city: string }) =>
+    api.post('/doctors/profile', data),
+
+  update: (data: { specialization?: string; qualification?: string; experience_years?: number; consultation_fee?: number; bio?: string; city?: string }) =>
+    api.put('/doctors/profile', data),
+
+  getMyDashboard: () =>
+    api.get('/doctors/my/dashboard'),
 };
 
 // Review APIs

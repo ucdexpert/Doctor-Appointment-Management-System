@@ -72,15 +72,16 @@ export default function FavoriteButton({ doctorId, size = "md" }: FavoriteButton
   return (
     <Button
       variant={isFavorited ? "default" : "outline"}
-      size={sizeClasses[size]}
+      size={size === "sm" ? "sm" : size === "lg" ? "lg" : "default"}
       onClick={toggleFavorite}
       disabled={loading}
       className={`
         rounded-full transition-all
-        ${isFavorited 
-          ? "bg-red-500 hover:bg-red-600 text-white border-red-500" 
+        ${isFavorited
+          ? "bg-red-500 hover:bg-red-600 text-white border-red-500"
           : "border-gray-300 hover:border-red-300 hover:text-red-500"
         }
+        ${sizeClasses[size]}
       `}
     >
       {loading ? (

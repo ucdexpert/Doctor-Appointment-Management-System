@@ -8,7 +8,7 @@ from database import get_db
 from models import ChatSession, ChatMessage, User
 from schemas import ChatSessionCreate, ChatSessionResponse, ChatReply
 from middleware.auth import get_current_user
-from utils.chatbot import get_chatbot_reply
+from utils.chatbot import get_chatbot_reply, client as groq_client
 from utils.limiter import limiter
 from datetime import datetime
 
@@ -152,6 +152,13 @@ def send_message(
     db: Session = Depends(get_db)
 ):
     """Send a message and get AI reply with real doctors from database"""
+    # Check if Groq client is initialized
+    if not groq_client:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="AI chatbot is currently unavailable. Please set GROQ_API_KEY to enable this feature."
+        )
+    
     session_id = data.get("session_id")
     message = data.get("message")
     file_url = data.get("file_url")  # URL of uploaded file (for display)
