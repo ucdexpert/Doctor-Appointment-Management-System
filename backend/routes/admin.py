@@ -170,6 +170,89 @@ def unban_user(
     return {"message": f"User {user.name} has been unbanned"}
 
 
+@router.delete("/users/{user_id}", response_model=MessageResponse)
+def delete_user(
+    user_id: int,
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db)
+):
+    """Delete a user permanently"""
+    from models import Doctor, Appointment, Review, ChatSession, ChatMessage
+
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # Prevent deleting admin users
+    if user.role == "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot delete admin users"
+        )
+
+    # Prevent admins from deleting themselves
+    if user.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot delete yourself"
+        )
+
+    try:
+        # Get related doctor IDs
+        doctor_ids = [d.id for d in db.query(Doctor).filter(Doctor.user_id == user_id).all()]
+
+        # Delete in correct order (respecting foreign keys)
+        # 1. Chat messages
+        db.query(ChatMessage).filter(ChatMessage.session_id.in_(
+            db.query(ChatSession.id).filter(ChatSession.user_id == user_id)
+        )).delete(synchronize_session=False)
+
+        # 2. Chat sessions
+        db.query(ChatSession).filter(ChatSession.user_id == user_id).delete(synchronize_session=False)
+
+        # 3. Appointments (patient)
+        db.query(Appointment).filter(
+            Appointment.patient_id == user_id
+        ).delete(synchronize_session=False)
+
+        # 4. Appointments (doctor) - if this user is a doctor
+        if doctor_ids:
+            db.query(Appointment).filter(
+                Appointment.doctor_id.in_(doctor_ids)
+            ).delete(synchronize_session=False)
+
+            # 5. Reviews (for this doctor)
+            db.query(Review).filter(
+                Review.doctor_id.in_(doctor_ids)
+            ).delete(synchronize_session=False)
+
+        # 6. Reviews (written by this user)
+        db.query(Review).filter(
+            Review.patient_id == user_id
+        ).delete(synchronize_session=False)
+
+        # 7. Doctor profile
+        db.query(Doctor).filter(Doctor.user_id == user_id).delete(synchronize_session=False)
+
+        # 8. Finally delete user
+        db.query(User).filter(User.id == user_id).delete(synchronize_session=False)
+
+        db.commit()
+
+        return {"message": f"User {user.name} has been deleted permanently"}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete user: {str(e)}"
+        )
+
+
 @router.get("/stats", response_model=AdminStats)
 def get_admin_stats(
     current_user: User = Depends(require_role("admin")),

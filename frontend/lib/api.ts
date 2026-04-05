@@ -255,6 +255,9 @@ export const adminAPI = {
   getAllUsers: (params?: Record<string, string>) =>
     api.get('/admin/users', { params }),
 
+  deleteUser: (id: number) =>
+    api.delete(`/admin/users/${id}`),
+
   banUser: (id: number, data: { reason: string }) =>
     api.put(`/admin/users/${id}/ban`, data),
 

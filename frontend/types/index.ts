@@ -27,6 +27,12 @@ export interface Doctor {
   consultation_fee: string;
   bio: string | null;
   city: string | null;
+  // Clinic Location Fields
+  clinic_name: string | null;
+  clinic_address: string | null;
+  clinic_latitude: string | null;
+  clinic_longitude: string | null;
+  clinic_landline: string | null;
   is_approved: boolean;
   rejection_reason: string | null;
   avg_rating: string;

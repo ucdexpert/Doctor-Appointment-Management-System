@@ -15,6 +15,14 @@ class Doctor(Base):
     consultation_fee = Column(DECIMAL(10, 2), nullable=False)
     bio = Column(Text)
     city = Column(String(100))
+    
+    # Clinic Location Fields
+    clinic_name = Column(String(200))
+    clinic_address = Column(Text)
+    clinic_latitude = Column(DECIMAL(10, 8))
+    clinic_longitude = Column(DECIMAL(11, 8))
+    clinic_landline = Column(String(20))
+    
     is_approved = Column(Boolean, default=False)
     rejection_reason = Column(Text)
     avg_rating = Column(DECIMAL(3, 2), default=0.0)

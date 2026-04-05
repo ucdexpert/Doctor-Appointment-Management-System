@@ -141,6 +141,11 @@ def create_doctor_profile(
         consultation_fee=doctor_data.consultation_fee,
         bio=doctor_data.bio,
         city=doctor_data.city,
+        clinic_name=doctor_data.clinic_name,
+        clinic_address=doctor_data.clinic_address,
+        clinic_latitude=doctor_data.clinic_latitude,
+        clinic_longitude=doctor_data.clinic_longitude,
+        clinic_landline=doctor_data.clinic_landline,
         is_approved=False  # Pending admin approval
     )
     
@@ -180,6 +185,16 @@ def update_doctor_profile(
         doctor.bio = doctor_data.bio
     if doctor_data.city is not None:
         doctor.city = doctor_data.city
+    if doctor_data.clinic_name is not None:
+        doctor.clinic_name = doctor_data.clinic_name
+    if doctor_data.clinic_address is not None:
+        doctor.clinic_address = doctor_data.clinic_address
+    if doctor_data.clinic_latitude is not None:
+        doctor.clinic_latitude = doctor_data.clinic_latitude
+    if doctor_data.clinic_longitude is not None:
+        doctor.clinic_longitude = doctor_data.clinic_longitude
+    if doctor_data.clinic_landline is not None:
+        doctor.clinic_landline = doctor_data.clinic_landline
     
     db.commit()
     db.refresh(doctor)

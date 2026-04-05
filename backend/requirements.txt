@@ -17,3 +17,8 @@ httpx==0.26.0
 APScheduler==3.10.4
 reportlab==4.0.9
 alembic==1.13.1
+
+# Medical Report Upload (Optional)
+pdfplumber>=0.10.0
+pypdf>=4.0.0
+python-docx>=1.1.0

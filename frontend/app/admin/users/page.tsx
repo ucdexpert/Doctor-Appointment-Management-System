@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Mail, Ban, CheckCircle, Loader2, Search } from "lucide-react";
+import { Users, Mail, Trash2, CheckCircle, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AdminUsersPage() {
@@ -20,7 +20,7 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [actionLoading, setActionLoading] = useState<{ id: number; action: "ban" | "unban" } | null>(null);
+  const [actionLoading, setActionLoading] = useState<{ id: number; action: "delete" } | null>(null);
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || user?.role !== "admin")) {
@@ -50,30 +50,20 @@ export default function AdminUsersPage() {
     }
   };
 
-  const handleBanUser = async (userId: number) => {
-    const reason = prompt("Enter ban reason:");
-    if (!reason) return;
+  const handleDeleteUser = async (userId: number, userName: string) => {
+    const confirmDelete = confirm(
+      `Are you sure you want to permanently delete "${userName}"?\n\nThis action cannot be undone. All associated data (appointments, reviews, chat history) will also be deleted.`
+    );
+    
+    if (!confirmDelete) return;
 
-    setActionLoading({ id: userId, action: "ban" });
+    setActionLoading({ id: userId, action: "delete" });
     try {
-      await adminAPI.banUser(userId, { reason });
-      toast.success("User banned successfully");
+      await adminAPI.deleteUser(userId);
+      toast.success("User deleted permanently");
       loadUsers();
     } catch (error: any) {
-      toast.error("Failed to ban user");
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleUnbanUser = async (userId: number) => {
-    setActionLoading({ id: userId, action: "unban" });
-    try {
-      await adminAPI.unbanUser(userId);
-      toast.success("User unbanned successfully");
-      loadUsers();
-    } catch (error: any) {
-      toast.error("Failed to unban user");
+      toast.error(error.response?.data?.detail || "Failed to delete user");
     } finally {
       setActionLoading(null);
     }
@@ -200,17 +190,10 @@ export default function AdminUsersPage() {
                           </span>
                         </td>
                         <td className="py-4 px-6">
-                          {user.is_banned ? (
-                            <Badge variant="destructive" className="flex items-center gap-1 w-fit">
-                              <Ban className="w-3 h-3" />
-                              Banned
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="flex items-center gap-1 w-fit text-green-600 border-green-600">
-                              <CheckCircle className="w-3 h-3" />
-                              Active
-                            </Badge>
-                          )}
+                          <Badge variant="outline" className="flex items-center gap-1 w-fit text-green-600 border-green-600">
+                            <CheckCircle className="w-3 h-3" />
+                            Active
+                          </Badge>
                         </td>
                         <td className="py-4 px-6 text-sm text-gray-600">
                           {new Date(user.created_at).toLocaleDateString()}
@@ -219,22 +202,17 @@ export default function AdminUsersPage() {
                           {user.role !== "admin" && (
                             <Button
                               size="sm"
-                              variant={user.is_banned ? "default" : "outline"}
-                              onClick={() => user.is_banned ? handleUnbanUser(user.id) : handleBanUser(user.id)}
+                              variant="outline"
+                              onClick={() => handleDeleteUser(user.id, user.name)}
                               disabled={actionLoading?.id === user.id}
-                              className={user.is_banned ? "bg-green-600 hover:bg-green-700" : "text-red-600 hover:text-red-700 hover:bg-red-50"}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
                             >
                               {actionLoading?.id === user.id ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : user.is_banned ? (
-                                <>
-                                  <CheckCircle className="w-4 h-4 mr-1" />
-                                  Unban
-                                </>
                               ) : (
                                 <>
-                                  <Ban className="w-4 h-4 mr-1" />
-                                  Ban
+                                  <Trash2 className="w-4 h-4 mr-1" />
+                                  Delete
                                 </>
                               )}
                             </Button>
@@ -267,9 +245,9 @@ export default function AdminUsersPage() {
             color="from-purple-500 to-pink-500"
           />
           <StatCard
-            label="Banned"
-            value={users.filter(u => u.is_banned).length}
-            color="from-red-500 to-orange-500"
+            label="Active Users"
+            value={users.filter(u => u.role !== "admin").length}
+            color="from-orange-500 to-red-500"
           />
         </div>
       </div>

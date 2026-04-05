@@ -455,6 +455,28 @@ export default function BookAppointmentPage() {
                   </div>
                 </div>
 
+                {/* Clinic Location */}
+                {(doctor.clinic_name || doctor.clinic_address) && (
+                  <div className="border-t border-gray-100 pt-4 mt-4">
+                    <div className="space-y-2">
+                      {doctor.clinic_name && (
+                        <div className="flex items-center gap-2 text-xs text-gray-600">
+                          <div className="w-6 h-6 rounded-md bg-blue-100 flex items-center justify-center shrink-0">
+                            <span className="text-[10px] font-bold text-blue-600">C</span>
+                          </div>
+                          <span className="truncate font-medium">{doctor.clinic_name}</span>
+                        </div>
+                      )}
+                      {doctor.clinic_address && (
+                        <div className="flex items-start gap-2 text-xs text-gray-500">
+                          <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                          <span className="line-clamp-2">{doctor.clinic_address}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Divider */}
                 <div className="border-t border-gray-100 pt-4">
                   <p className="text-xs text-gray-500 text-center flex items-center justify-center gap-1.5">

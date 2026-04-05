@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { doctorsAPI, reviewsAPI } from "@/lib/api";
 import { Doctor, Review } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -19,9 +20,18 @@ import {
   Heart,
   Share2,
   Sparkles,
+  Building2,
+  Phone,
+  Navigation,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+
+// Dynamically import Leaflet
+const MapContainer = dynamic(() => import("react-leaflet").then(mod => mod.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import("react-leaflet").then(mod => mod.TileLayer), { ssr: false });
+const Marker = dynamic(() => import("react-leaflet").then(mod => mod.Marker), { ssr: false });
+const Popup = dynamic(() => import("react-leaflet").then(mod => mod.Popup), { ssr: false });
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -316,7 +326,7 @@ export default function DoctorProfilePage() {
                     icon={<MapPin className="w-4 h-4" />}
                     iconBg="bg-blue-100"
                     iconColor="text-blue-600"
-                    label="Location"
+                    label="City"
                     value={doctor.city || "—"}
                   />
                   <InfoCard
@@ -363,6 +373,96 @@ export default function DoctorProfilePage() {
             </div>
           </div>
         </div>
+
+        {/* ── Clinic Location ── */}
+        {(doctor.clinic_name || doctor.clinic_address) && (
+          <div
+            className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
+            style={{ animation: "fadeSlideUp 0.5s ease-out both", animationDelay: "0.15s" }}
+          >
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-indigo-600" />
+                Clinic Location
+              </h3>
+
+              {/* Clinic Details */}
+              <div className="space-y-3 mb-5">
+                {doctor.clinic_name && (
+                  <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-xl">
+                    <Building2 className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Clinic Name</p>
+                      <p className="text-sm font-semibold text-gray-900 mt-0.5">{doctor.clinic_name}</p>
+                    </div>
+                  </div>
+                )}
+
+                {doctor.clinic_address && (
+                  <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-xl">
+                    <MapPin className="w-5 h-5 text-purple-600 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Address</p>
+                      <p className="text-sm text-gray-900 mt-0.5">{doctor.clinic_address}</p>
+                    </div>
+                  </div>
+                )}
+
+                {doctor.clinic_landline && (
+                  <div className="flex items-start gap-3 p-3 bg-green-50 rounded-xl">
+                    <Phone className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Phone</p>
+                      <p className="text-sm font-semibold text-gray-900 mt-0.5">{doctor.clinic_landline}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Map */}
+              {doctor.clinic_latitude && doctor.clinic_longitude && (
+                <div className="rounded-xl overflow-hidden border-2 border-gray-200 h-80">
+                  <MapContainer
+                    center={[parseFloat(doctor.clinic_latitude as any), parseFloat(doctor.clinic_longitude as any)]}
+                    zoom={15}
+                    style={{ height: "100%", width: "100%" }}
+                    scrollWheelZoom={true}
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <Marker position={[parseFloat(doctor.clinic_latitude as any), parseFloat(doctor.clinic_longitude as any)]}>
+                      <Popup>
+                        <div className="text-center">
+                          <p className="font-bold">{doctor.clinic_name || "Clinic Location"}</p>
+                          {doctor.clinic_address && (
+                            <p className="text-sm text-gray-600 mt-1">{doctor.clinic_address}</p>
+                          )}
+                        </div>
+                      </Popup>
+                    </Marker>
+                  </MapContainer>
+                </div>
+              )}
+
+              {/* Directions Link */}
+              {doctor.clinic_latitude && doctor.clinic_longitude && (
+                <div className="mt-4">
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${doctor.clinic_latitude},${doctor.clinic_longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md"
+                  >
+                    <Navigation className="w-4 h-4" />
+                    Get Directions
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ── About ── */}
         {doctor.bio && (

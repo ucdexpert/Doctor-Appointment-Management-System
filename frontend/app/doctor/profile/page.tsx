@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -9,9 +10,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, User, MapPin, BookOpen, Briefcase, FileText, Camera, X } from "lucide-react";
+import { Loader2, User, MapPin, BookOpen, Briefcase, FileText, Camera, X, Phone, Building2, Navigation } from "lucide-react";
 import { toast } from "sonner";
 import { doctorsAPI, uploadAPI, authAPI, doctorProfileAPI } from "@/lib/api";
+
+// Dynamically import Leaflet to avoid SSR issues
+import { useMapEvents } from "react-leaflet";
+
+const MapContainer = dynamic(() => import("react-leaflet").then(mod => mod.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import("react-leaflet").then(mod => mod.TileLayer), { ssr: false });
+const Marker = dynamic(() => import("react-leaflet").then(mod => mod.Marker), { ssr: false });
+const Popup = dynamic(() => import("react-leaflet").then(mod => mod.Popup), { ssr: false });
 
 const specializations = [
   "General Physician",
@@ -41,6 +50,16 @@ const cities = [
   "Gujranwala",
 ];
 
+// Map click handler component
+function MapClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number) => void }) {
+  const map = useMapEvents({
+    click(e) {
+      onMapClick(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
+
 export default function DoctorProfilePage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, updateUser } = useAuth();
@@ -57,7 +76,41 @@ export default function DoctorProfilePage() {
     consultation_fee: 0,
     bio: "",
     city: "",
+    clinic_name: "",
+    clinic_address: "",
+    clinic_latitude: 0,
+    clinic_longitude: 0,
+    clinic_landline: "",
   });
+
+  const handleMapClick = (lat: number, lng: number) => {
+    setFormData(prev => ({
+      ...prev,
+      clinic_latitude: lat,
+      clinic_longitude: lng,
+    }));
+    toast.success("Location selected! Coordinates updated.");
+  };
+
+  const handleLocationPick = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setFormData(prev => ({
+            ...prev,
+            clinic_latitude: position.coords.latitude,
+            clinic_longitude: position.coords.longitude,
+          }));
+          toast.success("Location detected!");
+        },
+        (error) => {
+          toast.error("Unable to get location. Please click on the map or enter address manually.");
+        }
+      );
+    } else {
+      toast.error("Geolocation is not supported by your browser");
+    }
+  };
 
   // Redirect if not doctor
   if (!isLoading && (!isAuthenticated || user?.role !== 'doctor')) {
@@ -70,6 +123,11 @@ export default function DoctorProfilePage() {
 
     if (!formData.specialization || !formData.qualification || !formData.city) {
       toast.error("Please fill all required fields");
+      return;
+    }
+
+    if (!formData.clinic_name || !formData.clinic_address) {
+      toast.error("Please provide clinic name and address");
       return;
     }
 
@@ -121,7 +179,6 @@ export default function DoctorProfilePage() {
     setUploadingPhoto(true);
     try {
       const response = await uploadAPI.profilePhoto(selectedFile);
-      // Update both AuthContext and localStorage
       updateUser(response.data.user);
 
       toast.success("Profile photo uploaded successfully");
@@ -141,7 +198,6 @@ export default function DoctorProfilePage() {
     setLoading(true);
     try {
       await authAPI.updateProfile({ photo_url: null });
-      // Update AuthContext with null photo_url
       updateUser({ ...user, photo_url: null } as any);
       toast.success("Profile photo removed");
     } catch (error: any) {
@@ -153,7 +209,7 @@ export default function DoctorProfilePage() {
 
   return (
     <DashboardLayout role="doctor">
-      <div className="max-w-3xl">
+      <div className="max-w-4xl">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             Complete Your Profile
@@ -208,6 +264,8 @@ export default function DoctorProfilePage() {
                   <p className="text-xs text-gray-500">JPG, PNG, WebP (Max 5MB)</p>
                 </div>
               </div>
+
+              {/* Specialization */}
               <div className="space-y-2">
                 <Label htmlFor="specialization" className="flex items-center gap-2">
                   <BookOpen className="w-4 h-4" />
@@ -230,6 +288,7 @@ export default function DoctorProfilePage() {
                 </Select>
               </div>
 
+              {/* Qualification */}
               <div className="space-y-2">
                 <Label htmlFor="qualification" className="flex items-center gap-2">
                   <BookOpen className="w-4 h-4" />
@@ -248,6 +307,7 @@ export default function DoctorProfilePage() {
                 </div>
               </div>
 
+              {/* Experience & Fee */}
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="experience" className="flex items-center gap-2">
@@ -282,6 +342,7 @@ export default function DoctorProfilePage() {
                 </div>
               </div>
 
+              {/* City */}
               <div className="space-y-2">
                 <Label htmlFor="city" className="flex items-center gap-2">
                   <MapPin className="w-4 h-4" />
@@ -304,6 +365,7 @@ export default function DoctorProfilePage() {
                 </Select>
               </div>
 
+              {/* Bio */}
               <div className="space-y-2">
                 <Label htmlFor="bio" className="flex items-center gap-2">
                   <FileText className="w-4 h-4" />
@@ -319,7 +381,145 @@ export default function DoctorProfilePage() {
                 />
               </div>
 
-              <div className="pt-4">
+              {/* Clinic Location Section */}
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-2">
+                    <Building2 className="w-5 h-5 text-blue-600" />
+                    Clinic Location Details *
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Provide your clinic details so patients can find and visit you easily
+                  </p>
+                </div>
+
+                <div className="space-y-5">
+                  {/* Clinic Name */}
+                  <div className="space-y-2">
+                    <Label htmlFor="clinic_name" className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4" />
+                      Clinic/Hospital Name *
+                    </Label>
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        id="clinic_name"
+                        placeholder="e.g., City Heart Clinic"
+                        value={formData.clinic_name}
+                        onChange={(e) => setFormData({ ...formData, clinic_name: e.target.value })}
+                        className="pl-10 h-11"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Clinic Address */}
+                  <div className="space-y-2">
+                    <Label htmlFor="clinic-address" className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      Complete Clinic Address *
+                    </Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        id="clinic-address"
+                        placeholder="Street, Area, City"
+                        value={formData.clinic_address}
+                        onChange={(e) => setFormData({ ...formData, clinic_address: e.target.value })}
+                        className="pl-10 pr-24 h-11"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleLocationPick}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 gap-1 h-8"
+                      >
+                        <Navigation className="w-4 h-4" />
+                        <span className="hidden sm:inline">Use My Location</span>
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Interactive Map */}
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      Clinic Location on Map
+                    </Label>
+                    <div className="w-full h-80 rounded-xl overflow-hidden border-2 border-gray-300">
+                      <MapContainer
+                        center={[formData.clinic_latitude || 24.8607, formData.clinic_longitude || 67.0011]}
+                        zoom={formData.clinic_latitude ? 15 : 12}
+                        style={{ height: "100%", width: "100%" }}
+                        scrollWheelZoom={true}
+                      >
+                        <TileLayer
+                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
+                        <MapClickHandler onMapClick={handleMapClick} />
+                        {(formData.clinic_latitude !== 0 || formData.clinic_longitude !== 0) && (
+                          <Marker position={[formData.clinic_latitude, formData.clinic_longitude]}>
+                            <Popup>
+                              <div className="text-center">
+                                <p className="font-bold">{formData.clinic_name || "Clinic Location"}</p>
+                                {formData.clinic_address && (
+                                  <p className="text-sm text-gray-600 mt-1">{formData.clinic_address}</p>
+                                )}
+                              </div>
+                            </Popup>
+                          </Marker>
+                        )}
+                      </MapContainer>
+                    </div>
+                    <p className="text-xs text-gray-500 text-center">
+                      💡 Click on the map to set your clinic location
+                    </p>
+                  </div>
+
+                  {/* Coordinates Display */}
+                  {(formData.clinic_latitude !== 0 || formData.clinic_longitude !== 0) && (
+                    <div className="grid sm:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-blue-700">Latitude</Label>
+                        <p className="text-sm font-mono font-bold text-blue-900">
+                          {formData.clinic_latitude.toFixed(6)}
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs text-blue-700">Longitude</Label>
+                        <p className="text-sm font-mono font-bold text-blue-900">
+                          {formData.clinic_longitude.toFixed(6)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Clinic Landline */}
+                  <div className="space-y-2">
+                    <Label htmlFor="clinic_landline" className="flex items-center gap-2">
+                      <Phone className="w-4 h-4" />
+                      Clinic Landline/Phone Number
+                    </Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        id="clinic_landline"
+                        placeholder="021-1234567 or +92 21 1234 5678"
+                        value={formData.clinic_landline}
+                        onChange={(e) => setFormData({ ...formData, clinic_landline: e.target.value })}
+                        className="pl-10 h-11"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500">Optional: Provide your clinic phone number for patient inquiries</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div className="pt-6 border-t">
                 <Button
                   type="submit"
                   className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"

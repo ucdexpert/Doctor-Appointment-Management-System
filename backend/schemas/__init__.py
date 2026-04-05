@@ -65,6 +65,13 @@ class DoctorBase(BaseModel):
     consultation_fee: Decimal = Field(..., ge=0)
     bio: Optional[str] = None
     city: Optional[str] = Field(None, max_length=100)
+    
+    # Clinic Location Fields
+    clinic_name: Optional[str] = Field(None, max_length=200)
+    clinic_address: Optional[str] = None
+    clinic_latitude: Optional[Decimal] = Field(None, ge=-90, le=90)
+    clinic_longitude: Optional[Decimal] = Field(None, ge=-180, le=180)
+    clinic_landline: Optional[str] = Field(None, max_length=20)
 
 
 class DoctorCreate(DoctorBase):
@@ -72,12 +79,14 @@ class DoctorCreate(DoctorBase):
 
 
 class DoctorUpdate(DoctorBase):
-    pass
+    specialization: Optional[str] = Field(None, max_length=100)
+    consultation_fee: Optional[Decimal] = Field(None, ge=0)
+    experience_years: Optional[int] = Field(None, ge=0)
 
 
 class DoctorResponse(DoctorBase):
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     user_id: int
     is_approved: bool
@@ -85,7 +94,7 @@ class DoctorResponse(DoctorBase):
     avg_rating: Decimal
     total_reviews: int
     created_at: datetime
-    
+
     user: Optional[UserResponse] = None
 
 
