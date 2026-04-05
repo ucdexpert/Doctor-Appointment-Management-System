@@ -204,7 +204,7 @@ class ReviewBase(BaseModel):
 
 class ReviewCreate(ReviewBase):
     doctor_id: int
-    appointment_id: int
+    appointment_id: Optional[int] = None
 
 
 class ReviewResponse(ReviewBase):

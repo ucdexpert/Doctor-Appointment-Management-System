@@ -15,43 +15,59 @@ def create_review(
     current_user: User = Depends(require_role("patient")),
     db: Session = Depends(get_db)
 ):
-    """Submit a review for a doctor (after completed appointment)"""
+    """Submit a review for a doctor (optionally after completed appointment)"""
 
-    # Verify appointment exists and belongs to this patient
-    appointment = db.query(Appointment).filter(
-        Appointment.id == review_data.appointment_id,
-        Appointment.patient_id == current_user.id
-    ).first()
+    appointment_id = review_data.appointment_id
 
-    if not appointment:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Appointment not found"
-        )
+    # If appointment_id is provided, validate it
+    if appointment_id is not None:
+        # Verify appointment exists and belongs to this patient
+        appointment = db.query(Appointment).filter(
+            Appointment.id == appointment_id,
+            Appointment.patient_id == current_user.id
+        ).first()
 
-    # Check if appointment is completed
-    if appointment.status != "completed":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Can only review completed appointments"
-        )
+        if not appointment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Appointment not found"
+            )
 
-    # Check if review already exists for this appointment
-    existing_review = db.query(Review).filter(
-        Review.appointment_id == review_data.appointment_id
-    ).first()
+        # Check if appointment is completed
+        if appointment.status != "completed":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Can only review completed appointments"
+            )
 
-    if existing_review:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You have already reviewed this appointment"
-        )
+        # Check if review already exists for this appointment
+        existing_review = db.query(Review).filter(
+            Review.appointment_id == appointment_id
+        ).first()
+
+        if existing_review:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You have already reviewed this appointment"
+            )
+    else:
+        # No appointment_id provided - check if user already reviewed this doctor
+        existing_review = db.query(Review).filter(
+            Review.patient_id == current_user.id,
+            Review.doctor_id == review_data.doctor_id
+        ).first()
+
+        if existing_review:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You have already reviewed this doctor"
+            )
 
     # Create review
     new_review = Review(
         patient_id=current_user.id,
         doctor_id=review_data.doctor_id,
-        appointment_id=review_data.appointment_id,
+        appointment_id=appointment_id,
         rating=review_data.rating,
         comment=review_data.comment
     )

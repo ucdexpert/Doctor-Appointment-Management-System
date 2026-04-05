@@ -92,7 +92,9 @@ export default function BookAppointmentPage() {
   }, [doctorId]);
 
   useEffect(() => {
-    if (selectedDate) {
+    // Only fetch slots when date is in valid YYYY-MM-DD format
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (selectedDate && dateRegex.test(selectedDate)) {
       loadAvailableSlots();
     }
   }, [selectedDate]);
@@ -111,8 +113,19 @@ export default function BookAppointmentPage() {
     setSlotsLoading(true);
     setSlotError("");
     try {
+      // Validate date format before sending
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!selectedDate || !dateRegex.test(selectedDate)) {
+        setSlotError("Please select a valid date");
+        setAvailableSlots([]);
+        setSlotsLoading(false);
+        return;
+      }
+
       const response = await doctorsAPI.getSlots(parseInt(doctorId), selectedDate);
       const slots: string[] = response.data.slots || [];
+      const message = response.data.message || "";
+      
       // Convert string[] to TimeSlot[] format
       setAvailableSlots(
         slots.map((time) => ({ time, isAvailable: true }))
@@ -120,11 +133,21 @@ export default function BookAppointmentPage() {
       setSelectedSlot(""); // Reset selected slot when date changes
       
       if (slots.length === 0) {
-        setSlotError("No slots available for this date. Please try another date.");
+        if (message.includes("not available")) {
+          setSlotError("Doctor is not available on this day. Please select a different date.");
+        } else {
+          setSlotError("All slots are already booked for this date. Please try another date.");
+        }
       }
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error("Slot loading error:", error);
-      setSlotError("Failed to load slots. Please try again.");
+      const message = error?.response?.data?.detail || "";
+      
+      if (message.includes("Invalid date")) {
+        setSlotError("Invalid date format. Please select a valid date.");
+      } else {
+        setSlotError("Failed to load slots. Please try again.");
+      }
       setAvailableSlots([]);
     } finally {
       setSlotsLoading(false);
@@ -176,11 +199,23 @@ export default function BookAppointmentPage() {
     } catch (error: any) {
       const message = error?.response?.data?.detail || "Failed to book appointment";
       
-      // Handle double booking specifically
-      if (message.includes("already booked") || message.includes("slot")) {
+      // Handle specific error cases
+      if (message.includes("already booked") || message.includes("slot is already booked")) {
         toast.error("⚠️ This slot was just booked by someone else. Please select another slot.");
         // Refresh slots to show real-time availability
         await loadAvailableSlots();
+      } else if (message.includes("not available")) {
+        toast.error("⚠️ Doctor is not available on this day");
+        setSelectedSlot("");
+      } else if (message.includes("outside doctor's working hours")) {
+        toast.error("⚠️ Time slot is outside doctor's working hours");
+        setSelectedSlot("");
+      } else if (message.includes("intervals")) {
+        toast.error("⚠️ Invalid time slot interval");
+        setSelectedSlot("");
+      } else if (message.includes("past date")) {
+        toast.error("⚠️ Cannot book appointment for a past date");
+        setSelectedDate("");
       } else {
         toast.error(message);
       }
@@ -494,6 +529,11 @@ export default function BookAppointmentPage() {
                       <div className="text-center py-10 bg-yellow-50 rounded-xl border-2 border-dashed border-yellow-300">
                         <AlertCircle className="w-12 h-12 mx-auto text-yellow-500 mb-3" />
                         <p className="text-yellow-700 font-medium">{slotError}</p>
+                        {slotError.includes("not available") && (
+                          <p className="text-sm text-yellow-600 mt-2">
+                            💡 Doctor has not added their schedule for this day. Please try a different date.
+                          </p>
+                        )}
                         <button
                           type="button"
                           onClick={handleRefreshSlots}

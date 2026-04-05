@@ -1,0 +1,263 @@
+C:\Users\Uzair\AppData\Local\Programs\Python\Python313\Lib\site-packages\requests\__init__.py:109: RequestsDependencyWarning: urllib3 (2.3.0) or chardet (7.1.0)/charset_normalizer (3.4.1) doesn't match a supported version!
+  warnings.warn(
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Added job "Send 24-hour appointment reminders" to job store "default"
+INFO:apscheduler.scheduler:Added job "Send 1-hour appointment reminders" to job store "default"
+INFO:apscheduler.scheduler:Scheduler started
+INFO:     Started server process [20180]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+[INFO] Starting appointment reminder scheduler...
+[OK] Scheduler started successfully!
+[SCHEDULE] 24hr reminders: Every hour at :00
+[SCHEDULE] 1hr reminders: Every 30 minutes (:00 and :30)
+INFO:     127.0.0.1:54564 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54630 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54630 - "POST /auth/login HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54630 - "POST /auth/login HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54630 - "POST /auth/login HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54630 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54630 - "PUT /auth/me HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:54630 - "PUT /auth/me HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:54630 - "POST /auth/refresh HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54630 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54630 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+Failed to send password reset email: The gmail.com domain is not verified. Please, add and verify your domain on https://resend.com/domains
+INFO:     127.0.0.1:54630 - "POST /auth/forgot-password HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54630 - "POST /auth/forgot-password HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54630 - "GET /doctors HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54630 - "GET /doctors?skip=0&limit=5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54630 - "GET /doctors/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54630 - "GET /doctors/99999 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "GET /doctors/search?q=doctor HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54630 - "GET /doctors/search?q= HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54630 - "GET /doctors?specialty=Cardiology HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54630 - "GET /doctors/1/schedules HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "GET /doctors/1/reviews HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "GET /appointments/my HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54630 - "POST /appointments HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54630 - "POST /appointments HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54630 - "POST /appointments HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54630 - "POST /appointments HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54630 - "POST /appointments HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54630 - "GET /appointments/99999 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "DELETE /appointments/99999 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "GET /schedules/1 HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:54630 - "GET /schedules/99999 HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:54630 - "POST /schedules HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:54630 - "POST /reviews HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54630 - "POST /reviews HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54630 - "POST /reviews HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54630 - "POST /reviews HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54630 - "GET /doctors/1/reviews HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "GET /favorites HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "POST /favorites/1 HTTP/1.1" 201 Created
+INFO:     127.0.0.1:54630 - "GET /favorites/1/check HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "DELETE /favorites/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54630 - "POST /favorites/99999 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "GET /favorites HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "POST /chat/sessions HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:54630 - "GET /chat/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54630 - "POST /chat/sessions/1/messages HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "POST /chat/sessions/99999/messages HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "GET /notifications HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "GET /notifications/unread-count HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:54630 - "PUT /notifications/1/read HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "PUT /notifications/read-all HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:54630 - "DELETE /notifications/1 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "GET /notifications HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "GET /search-history HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:54630 - "POST /search-history HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54630 - "POST /search-history HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54630 - "DELETE /search-history HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:54630 - "GET /search-history HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:54630 - "GET /admin/dashboard HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "GET /admin/users HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:54630 - "GET /admin/appointments HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "GET /admin/dashboard HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "PUT /admin/users/1 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "GET /admin/stats HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:54630 - "POST /upload/photo HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "POST /upload/photo HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54630 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54630 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54630 - "GET /api/does-not-exist HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "DELETE / HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:54630 - "POST /auth/login HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54630 - "POST /auth/login HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54630 - "PUT /auth/me HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:54630 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54630 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54666 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "POST /auth/login HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54666 - "POST /auth/login HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54666 - "POST /auth/login HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54666 - "GET /auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "PUT /auth/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "PUT /auth/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "POST /auth/refresh HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54666 - "GET /auth/me HTTP/1.1" 401 Unauthorized
+Failed to send password reset email: The gmail.com domain is not verified. Please, add and verify your domain on https://resend.com/domains
+INFO:     127.0.0.1:54666 - "POST /auth/forgot-password HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "POST /auth/forgot-password HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /doctors HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /doctors?skip=0&limit=5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /doctors/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /doctors/99999 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54666 - "GET /doctors?search=doctor HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /doctors?search= HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /doctors?specialty=Cardiology HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /doctors/1/slots HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54666 - "GET /reviews/doctor/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /appointments/my HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "POST /appointments HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:54666 - "POST /appointments HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54666 - "POST /appointments HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54666 - "POST /appointments HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54666 - "POST /appointments HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:54666 - "GET /appointments/99999 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54666 - "PUT /appointments/99999/cancel HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54666 - "GET /schedules/my HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:54666 - "POST /schedules HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:54666 - "POST /reviews HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54666 - "POST /reviews HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54666 - "POST /reviews HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54666 - "POST /reviews HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54666 - "GET /reviews/doctor/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /favorites/my HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "POST /favorites/1 HTTP/1.1" 201 Created
+INFO:     127.0.0.1:54666 - "GET /favorites/check/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "DELETE /favorites/1 HTTP/1.1" 200 OK
+INFO:apscheduler.executors.default:Running job "Send 1-hour appointment reminders (trigger: cron[minute='0,30'], next run at: 2026-04-05 11:30:00 PKT)" (scheduled at 2026-04-05 11:30:00+05:00)
+INFO:     127.0.0.1:54666 - "POST /favorites/99999 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54666 - "GET /favorites/my HTTP/1.1" 401 Unauthorized
+ERROR:apscheduler.executors.default:Job "Send 1-hour appointment reminders (trigger: cron[minute='0,30'], next run at: 2026-04-05 12:00:00 PKT)" raised an exception
+Traceback (most recent call last):
+  File "D:\Doctor-Appointment-Managment-System\backend\send_reminders.py", line 117, in send_1hr_reminders
+    print(f"\n\u23f0 Found {len(upcoming_appointments)} appointment(s) in the next hour")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Uzair\AppData\Local\Programs\Python\Python313\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u23f0' in position 2: character maps to <undefined>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Uzair\AppData\Local\Programs\Python\Python313\Lib\site-packages\apscheduler\executors\base.py", line 131, in run_job
+    retval = job.func(*job.args, **job.kwargs)
+  File "D:\Doctor-Appointment-Managment-System\backend\send_reminders.py", line 156, in send_1hr_reminders
+    print(f"\n\u274c Error sending 1hr reminders: {e}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Uzair\AppData\Local\Programs\Python\Python313\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u274c' in position 2: character maps to <undefined>
+INFO:     127.0.0.1:54666 - "POST /chat/session HTTP/1.1" 201 Created
+INFO:     127.0.0.1:54666 - "GET /chat/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "POST /chat/message HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:54666 - "POST /chat/message HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54666 - "GET /notifications/my HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /notifications/my/unread-count HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "PUT /notifications/1/read HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54666 - "PUT /notifications/my/read-all HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "DELETE /notifications/1 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54666 - "GET /notifications/my HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54666 - "GET /search-history/my HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "POST /search-history HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54666 - "POST /search-history HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54666 - "DELETE /search-history/my/clear HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /search-history/my HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54666 - "GET /admin/stats HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:54666 - "GET /admin/users HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:54666 - "GET /admin/doctors/pending HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:54666 - "GET /admin/stats HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54666 - "PUT /admin/users/1/ban HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:54666 - "GET /admin/stats HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:54666 - "POST /upload/profile-photo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "POST /upload/profile-photo HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54666 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /api/does-not-exist HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54666 - "DELETE / HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:54666 - "POST /auth/login HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54666 - "POST /auth/login HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:54666 - "PUT /auth/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54759 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54759 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54775 - "OPTIONS /appointments/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54776 - "OPTIONS /doctors/recommendations/quick-book HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54777 - "OPTIONS /appointments/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54778 - "OPTIONS /doctors/recommendations/quick-book HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54778 - "GET /appointments/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54777 - "GET /doctors/recommendations/quick-book HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54779 - "GET /appointments/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54778 - "GET /doctors/recommendations/quick-book HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54794 - "OPTIONS /chat/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54795 - "OPTIONS /chat/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54795 - "GET /chat/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54794 - "GET /chat/sessions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54796 - "OPTIONS /chat/sessions/14 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54796 - "GET /chat/sessions/14 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54800 - "OPTIONS /chat/message HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54800 - "POST /chat/message HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54801 - "OPTIONS /appointments/my HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54801 - "OPTIONS /appointments/my HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54801 - "GET /appointments/my HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54811 - "GET /appointments/my HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54818 - "OPTIONS /search-history/my?limit=5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54819 - "OPTIONS /doctors?page=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54820 - "OPTIONS /search-history/my?limit=5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54821 - "OPTIONS /doctors?page=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54821 - "GET /search-history/my?limit=5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54819 - "GET /search-history/my?limit=5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54820 - "GET /doctors?page=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54820 - "OPTIONS /favorites/check/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54821 - "OPTIONS /favorites/check/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54818 - "OPTIONS /favorites/check/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54822 - "OPTIONS /favorites/check/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54825 - "GET /uploads/profile_photos/d5f96d3d-7706-4285-98d5-f0cb546f40c8.png HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:54819 - "GET /doctors?page=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54821 - "GET /favorites/check/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54818 - "GET /favorites/check/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54822 - "GET /favorites/check/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54819 - "GET /favorites/check/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54819 - "OPTIONS /doctors/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54822 - "OPTIONS /doctors/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54822 - "GET /doctors/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54819 - "GET /doctors/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54831 - "OPTIONS /doctors/1/slots?date=0002-04-05 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54833 - "OPTIONS /doctors/1/slots?date=0020-04-05 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54835 - "OPTIONS /doctors/1/slots?date=0202-04-05 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54831 - "GET /doctors/1/slots?date=0002-04-05 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54836 - "OPTIONS /doctors/1/slots?date=2026-04-05 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54833 - "GET /doctors/1/slots?date=0020-04-05 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54836 - "GET /doctors/1/slots?date=2026-04-05 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54835 - "GET /doctors/1/slots?date=0202-04-05 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54839 - "OPTIONS /doctors/1/slots?date=2026-04-06 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54839 - "GET /doctors/1/slots?date=2026-04-06 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54840 - "OPTIONS /appointments HTTP/1.1" 200 OK
+Failed to send appointment confirmation: The gmail.com domain is not verified. Please, add and verify your domain on https://resend.com/domains
+Failed to send doctor notification: The gmail.com domain is not verified. Please, add and verify your domain on https://resend.com/domains
+INFO:     127.0.0.1:54840 - "POST /appointments HTTP/1.1" 201 Created
+INFO:     127.0.0.1:54847 - "GET /appointments/my HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54848 - "GET /appointments/my HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54851 - "OPTIONS /reviews HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54851 - "POST /reviews HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:54905 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54905 - "GET /openapi.json HTTP/1.1" 200 OK

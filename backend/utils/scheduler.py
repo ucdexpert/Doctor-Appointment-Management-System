@@ -6,6 +6,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from send_reminders import send_24hr_reminders, send_1hr_reminders
 import logging
+import os
 
 # Configure logging
 logging.basicConfig()
@@ -18,18 +19,18 @@ scheduler = BackgroundScheduler()
 def start_scheduler(app=None):
     """
     Start the background scheduler for appointment reminders.
-    
+
     Schedule:
     - 24hr reminders: Runs every hour at minute 0
     - 1hr reminders: Runs every 30 minutes
     """
-    
+
     # Check if reminders are enabled
     if not os.getenv("RESEND_API_KEY"):
-        print("⚠️  RESEND_API_KEY not set. Email reminders disabled.")
+        print("[WARN] RESEND_API_KEY not set. Email reminders disabled.")
         return
-    
-    print("🔔 Starting appointment reminder scheduler...")
+
+    print("[INFO] Starting appointment reminder scheduler...")
     
     # Add 24hr reminder job - runs every hour
     scheduler.add_job(
@@ -51,10 +52,10 @@ def start_scheduler(app=None):
     
     # Start the scheduler
     scheduler.start()
-    
-    print("✅ Scheduler started successfully!")
-    print("📅 24hr reminders: Every hour at :00")
-    print("⏰ 1hr reminders: Every 30 minutes (:00 and :30)")
+
+    print("[OK] Scheduler started successfully!")
+    print("[SCHEDULE] 24hr reminders: Every hour at :00")
+    print("[SCHEDULE] 1hr reminders: Every 30 minutes (:00 and :30)")
     
     # Shutdown scheduler on app exit
     import atexit

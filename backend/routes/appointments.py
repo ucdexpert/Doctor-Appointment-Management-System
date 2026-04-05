@@ -45,31 +45,42 @@ def validate_appointment_slot(
     if existing:
         return False, "This time slot is already booked"
     
-    # 3. Check if doctor is available on this day of week
+    # 3. Check if doctor is available on this day of week (only if schedules exist)
     day_name = appointment_date.strftime("%A")  # e.g., "Monday"
     schedule = db.query(Schedule).filter(
         Schedule.doctor_id == doctor_id,
         Schedule.day_of_week == day_name,
         Schedule.is_available == True
     ).first()
-    
-    if not schedule:
+
+    # If doctor has no schedules defined at all, skip schedule-based validation
+    # and allow booking with basic validation only
+    any_schedule_exists = db.query(Schedule).filter(
+        Schedule.doctor_id == doctor_id,
+        Schedule.is_available == True
+    ).first()
+
+    if not any_schedule_exists:
+        # Doctor has no schedules - allow booking without schedule validation
+        # Only check for double booking (already done in step 2)
+        pass
+    elif not schedule:
         return False, f"Doctor is not available on {day_name}"
-    
-    # 4. Check if requested time is within doctor's working hours
-    start_time = schedule.start_time
-    end_time = schedule.end_time
-    
-    if appointment_time < start_time or appointment_time >= end_time:
-        return False, f"Requested time is outside doctor's working hours ({start_time.strftime('%H:%M')} - {end_time.strftime('%H:%M')})"
-    
-    # 5. Check if time aligns with slot duration (e.g., 15, 30, 60 min intervals)
-    slot_duration = schedule.slot_duration
-    minutes_since_start = (appointment_time.hour * 60 + appointment_time.minute) - (start_time.hour * 60 + start_time.minute)
-    
-    if minutes_since_start % slot_duration != 0:
-        return False, f"Time slot must be in {slot_duration}-minute intervals"
-    
+    else:
+        # 4. Check if requested time is within doctor's working hours
+        start_time = schedule.start_time
+        end_time = schedule.end_time
+
+        if appointment_time < start_time or appointment_time >= end_time:
+            return False, f"Requested time is outside doctor's working hours ({start_time.strftime('%H:%M')} - {end_time.strftime('%H:%M')})"
+
+        # 5. Check if time aligns with slot duration (e.g., 15, 30, 60 min intervals)
+        slot_duration = schedule.slot_duration
+        minutes_since_start = (appointment_time.hour * 60 + appointment_time.minute) - (start_time.hour * 60 + start_time.minute)
+
+        if minutes_since_start % slot_duration != 0:
+            return False, f"Time slot must be in {slot_duration}-minute intervals"
+
     return True, ""
 
 
@@ -130,13 +141,18 @@ def create_appointment(
     db.commit()
     db.refresh(new_appointment)
 
+    # Get doctor and patient info for notifications
+    doctor_name = doctor.user.name if doctor.user else "Doctor"
+    doctor_user = db.query(User).filter(User.id == doctor.user_id).first()
+    patient_email = current_user.email
+
     # Create in-app notifications
     create_notification(
         db, current_user.id, "Appointment Booked",
         f"Your appointment with Dr. {doctor_name} on {appointment_data.appointment_date} at {appointment_data.time_slot} has been booked!",
         "success", f"/patient/appointments"
     )
-    
+
     # Notify doctor
     if doctor_user:
         create_notification(
@@ -146,8 +162,6 @@ def create_appointment(
         )
 
     # Send confirmation email to patient
-    patient_email = current_user.email
-    doctor_name = doctor.user.name if doctor.user else "Doctor"
     try:
         send_appointment_confirmation(
             patient_email=patient_email,
@@ -159,7 +173,6 @@ def create_appointment(
         print(f"Failed to send patient confirmation email: {e}")
 
     # Send notification email to doctor
-    doctor_user = db.query(User).filter(User.id == doctor.user_id).first()
     if doctor_user:
         try:
             send_doctor_notification(
