@@ -68,11 +68,6 @@ export const metadata: Metadata = {
       "Find and book appointments with top doctors in Pakistan. AI-powered health assistant available 24/7.",
     images: ["/twitter-image.png"],
   },
-  icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
-  },
-  manifest: "/site.webmanifest",
   category: "Healthcare",
   alternates: {
     canonical: "/",

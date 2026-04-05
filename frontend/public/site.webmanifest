@@ -1,0 +1,16 @@
+{
+  "name": "Doctor Appointment System",
+  "short_name": "DocBook",
+  "description": "Book appointments with top doctors in Pakistan",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0ea5e9",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}
