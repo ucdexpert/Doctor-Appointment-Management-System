@@ -163,6 +163,7 @@ export default function DoctorProfilePage() {
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     loadDoctorData();
@@ -267,11 +268,12 @@ export default function DoctorProfilePage() {
             <div className="flex flex-col sm:flex-row items-start gap-5">
               {/* Avatar */}
               <div className="relative shrink-0 -mt-16 sm:-mt-20">
-                {photoUrl ? (
+                {photoUrl && !imageError ? (
                   <img
                     src={photoUrl}
                     alt={doctor.user?.name || "Doctor"}
                     className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover ring-4 ring-white shadow-lg"
+                    onError={() => setImageError(true)}
                   />
                 ) : (
                   <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold ring-4 ring-white shadow-lg">

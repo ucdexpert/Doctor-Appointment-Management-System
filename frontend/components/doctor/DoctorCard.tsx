@@ -297,6 +297,7 @@ const DoctorCard = ({ doctor, index = 0 }: DoctorCardProps) => {
 
   const doctorName = (doctor.user?.name || "Unknown").replace(/^Dr\.?\s*/i, "");
   const photoUrl = getPhotoUrl();
+  const [imageError, setImageError] = useState(false);
 
   return (
     <motion.div
@@ -309,14 +310,15 @@ const DoctorCard = ({ doctor, index = 0 }: DoctorCardProps) => {
       <Card className="overflow-hidden border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all h-full flex flex-col">
         <CardContent className="p-0 flex flex-col flex-1">
 
-          {/* ── Header ── */}
+          {/* ── Header ─ */}
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 relative flex items-start gap-3">
             {/* Avatar */}
-            {photoUrl ? (
+            {photoUrl && !imageError ? (
               <img
                 src={photoUrl}
                 alt={doctorName}
                 className="w-14 h-14 rounded-full object-cover border-2 border-white/40 shadow shrink-0"
+                onError={() => setImageError(true)}
               />
             ) : (
               <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-white text-xl font-semibold border-2 border-white/40 shrink-0">

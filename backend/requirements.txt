@@ -14,6 +14,7 @@ email-validator==2.3.0
 slowapi==0.1.9
 pytest==7.4.3
 httpx==0.26.0
+python-multipart>=0.0.6
 APScheduler==3.10.4
 reportlab==4.0.9
 alembic==1.13.1

@@ -67,6 +67,8 @@ export default function PatientProfilePage() {
     return photoUrl;
   };
 
+  const [imageError, setImageError] = useState(false);
+
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -231,11 +233,12 @@ export default function PatientProfilePage() {
                 className="relative group shrink-0"
               >
                 <div className="w-32 h-32 rounded-2xl overflow-hidden border-4 border-white shadow-xl">
-                  {photoUrl ? (
+                  {photoUrl && !imageError ? (
                     <img
                       src={photoUrl}
                       alt={user?.name || "User"}
                       className="w-full h-full object-cover"
+                      onError={() => setImageError(true)}
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-4xl font-bold">
