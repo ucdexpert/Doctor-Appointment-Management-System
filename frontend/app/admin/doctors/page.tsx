@@ -255,19 +255,22 @@ function DoctorCard({
   onReject: (id: number) => void;
   actionLoading: { id: number; action: "approve" | "reject" } | null;
 }) {
+  const doctorName = doctor.user?.name || "Unknown";
+  const formattedName = doctorName.replace(/^Dr\.?\s*/i, "");
+  
   return (
     <Card className="border-0 shadow-md">
       <CardContent className="p-6">
         <div className="flex items-start gap-4">
           <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-xl font-bold shrink-0">
-            {doctor.user?.name?.charAt(0) || "D"}
+            {formattedName.charAt(0) || "D"}
           </div>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
                 <h3 className="font-semibold text-gray-900 text-lg">
-                  Dr. {doctor.user?.name}
+                  Dr. {formattedName}
                 </h3>
                 <p className="text-blue-600 font-medium">{doctor.specialization}</p>
               </div>

@@ -10,7 +10,6 @@
 ![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
 
 ---
-
 ##  Table of Contents
 
 - [Features](#-features)
