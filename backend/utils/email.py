@@ -275,3 +275,54 @@ def send_password_reset_email(email: str, reset_token: str, user_name: str):
         print(f"Password reset email sent to {email}")
     except Exception as e:
         print(f"Failed to send password reset email: {e}")
+
+
+def send_contact_form_email(name: str, email: str, subject: str, message: str):
+    """Send contact form submission to admin"""
+
+    if not resend.api_key:
+        print("Resend API key not configured, skipping email")
+        return False
+
+    # Admin email - where contact form submissions go
+    ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "hk202504@gmail.com")
+
+    try:
+        resend.Emails.send({
+            "from": FROM_EMAIL,
+            "to": ADMIN_EMAIL,
+            "subject": f"New Contact Form: {subject}",
+            "html": f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+                    <h1 style="color: white; margin: 0;">New Contact Form Submission 📩</h1>
+                </div>
+                <div style="padding: 30px; background: #f9f9f9;">
+                    <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <p style="margin: 10px 0;"><strong>👤 Name:</strong> {name}</p>
+                        <p style="margin: 10px 0;"><strong>📧 Email:</strong> {email}</p>
+                        <p style="margin: 10px 0;"><strong>📋 Subject:</strong> {subject}</p>
+                    </div>
+                    <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <p style="margin: 0 0 10px 0;"><strong>💬 Message:</strong></p>
+                        <p style="margin: 0; color: #333; line-height: 1.6; white-space: pre-wrap;">{message}</p>
+                    </div>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="mailto:{email}"
+                           style="background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+                            Reply to {name}
+                        </a>
+                    </div>
+                    <p style="font-size: 16px; color: #333; margin-top: 20px;">
+                        Best regards,<br/>
+                        <strong>HealthCare+ Contact Form</strong>
+                    </p>
+                </div>
+            </div>
+            """
+        })
+        print(f"Contact form email sent to {ADMIN_EMAIL} from {name}")
+        return True
+    except Exception as e:
+        print(f"Failed to send contact form email: {e}")
+        return False

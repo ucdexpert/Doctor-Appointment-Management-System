@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /patient/profile
+Disallow: /doctor/profile
+
+# Sitemap
+Sitemap: https://doctor-appointment-management-sytem.vercel.app/sitemap.xml

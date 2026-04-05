@@ -88,6 +88,26 @@ export default function RootLayout({
         <link rel="canonical" href={process.env.NEXT_PUBLIC_SITE_URL || "https://doctor-appointment-management-sytem.vercel.app"} />
         <meta name="theme-color" content="#0ea5e9" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "MedicalOrganization",
+              "name": "Doctor Appointment System",
+              "url": "https://doctor-appointment-management-sytem.vercel.app",
+              "description": "Find and book appointments with top doctors in Pakistan. Search by specialization, city, or availability. AI-powered health assistant available 24/7.",
+              "areaServed": "Pakistan",
+              "medicalSpecialty": ["General Practice", "Cardiology", "Dermatology", "Pediatrics"],
+              "contactPoint": {
+                "@type": "ContactPoint",
+                "contactType": "Customer Support",
+                "availableLanguage": ["English", "Urdu"]
+              },
+              "sameAs": []
+            }),
+          }}
+        />
       </head>
       <body className="min-h-full flex flex-col font-sans antialiased">
         <ReactQueryProvider>

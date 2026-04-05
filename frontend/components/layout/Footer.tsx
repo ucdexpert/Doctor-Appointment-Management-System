@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Heart, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
+import { Heart, Mail, Phone, MapPin, Github, Twitter, Instagram, Linkedin } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -28,10 +28,10 @@ export default function Footer({ hide = false }: FooterProps) {
       { label: "Login", href: "/login" },
     ],
     support: [
-      { label: "Help Center", href: "#" },
-      { label: "Contact Us", href: "mailto:contact@healthcare.com" },
-      { label: "Privacy Policy", href: "#" },
-      { label: "Terms of Service", href: "#" },
+      { label: "Help Center", href: "/help" },
+      { label: "Contact Us", href: "/contact" },
+      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Terms of Service", href: "/terms" },
     ],
   };
 
@@ -65,14 +65,16 @@ export default function Footer({ hide = false }: FooterProps) {
             {/* Social Links */}
             <div className="flex items-center gap-3">
               {[
-                { icon: Facebook, href: "#", label: "Facebook" },
-                { icon: Twitter, href: "#", label: "Twitter" },
-                { icon: Instagram, href: "#", label: "Instagram" },
-                { icon: Linkedin, href: "#", label: "LinkedIn" },
+                { icon: Github, href: "https://github.com/ucdexpert", label: "GitHub" },
+                { icon: Twitter, href: "https://x.com/HassanKhan20842", label: "Twitter" },
+                { icon: Instagram, href: "https://www.instagram.com/uzairkhilji.uzairkhilji/", label: "Instagram" },
+                { icon: Linkedin, href: "https://www.linkedin.com/in/muhammad-uzair-066733314/", label: "LinkedIn" },
               ].map((social, index) => (
                 <a
                   key={index}
                   href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label={social.label}
                   className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-gray-600 hover:text-blue-600 hover:bg-blue-50 hover:shadow-lg transition-all duration-300 border border-gray-200"
                 >
@@ -130,19 +132,19 @@ export default function Footer({ hide = false }: FooterProps) {
             <ul className="space-y-3">
               <li className="flex items-start gap-3 text-sm text-gray-600">
                 <Mail className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                <a href="mailto:contact@healthcare.com" className="hover:text-blue-600 transition-colors">
-                  contact@healthcare.com
+                <a href="mailto:hk202504@gmail.com" className="hover:text-blue-600 transition-colors">
+                  hk202504@gmail.com
                 </a>
               </li>
               <li className="flex items-start gap-3 text-sm text-gray-600">
                 <Phone className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                <a href="tel:+923001234567" className="hover:text-blue-600 transition-colors">
-                  +92 300 1234567
+                <a href="tel:03170219387" className="hover:text-blue-600 transition-colors">
+                  0317-0219387
                 </a>
               </li>
               <li className="flex items-start gap-3 text-sm text-gray-600">
                 <MapPin className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                <span>Lahore, Pakistan</span>
+                <span>Karachi, Pakistan</span>
               </li>
             </ul>
           </div>

@@ -80,7 +80,7 @@ def health_check():
     }
 
 # Import and include routers
-from routes import auth, doctors, schedules, appointments, reviews, chatbot, upload, admin, favorites, search_history, notifications
+from routes import auth, doctors, schedules, appointments, reviews, chatbot, upload, admin, favorites, search_history, notifications, contact
 
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(doctors.router, tags=["Doctors"])
@@ -93,6 +93,7 @@ app.include_router(admin.router, tags=["Admin"])
 app.include_router(favorites.router, tags=["Favorites"])
 app.include_router(search_history.router, tags=["Search History"])
 app.include_router(notifications.router, tags=["Notifications"])
+app.include_router(contact.router, tags=["Contact"])
 
 # Mount static files for uploaded photos
 if os.path.exists("uploads"):

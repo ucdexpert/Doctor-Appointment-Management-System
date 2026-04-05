@@ -334,3 +334,9 @@ export const notificationsAPI = {
   delete: (notificationId: number) =>
     api.delete(`/notifications/${notificationId}`),
 };
+
+// Contact API
+export const contactAPI = {
+  submit: (data: { name: string; email: string; subject: string; message: string }) =>
+    api.post('/contact/send', data),
+};
