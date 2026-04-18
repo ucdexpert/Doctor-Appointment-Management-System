@@ -19,6 +19,7 @@ import {
   ArrowDownRight,
   ChevronDown,
   SearchX,
+  Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -279,6 +280,20 @@ function AppointmentCard({
 
           {/* Actions */}
           <div className="flex items-center gap-2 shrink-0">
+            {/* Join Call button for video appointments */}
+            {appointment.appointment_type === "video" && 
+             (appointment.status === "pending" || appointment.status === "confirmed") && (
+              <motion.a
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                href={`/patient/video-call/${appointment.id}`}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 transition-all"
+              >
+                <Video className="w-3.5 h-3.5" />
+                Join Call
+              </motion.a>
+            )}
+
             {(appointment.status === "pending" ||
               appointment.status === "confirmed") && (
               <motion.button

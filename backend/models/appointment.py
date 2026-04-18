@@ -14,6 +14,9 @@ class Appointment(Base):
     time_slot = Column(Time, nullable=False)
     reason = Column(Text)
     status = Column(String(20), default="pending")  # 'pending', 'confirmed', 'cancelled', 'completed'
+    appointment_type = Column(String(20), default="in-person")  # 'in-person', 'video'
+    call_duration = Column(Integer, default=0)  # Duration in seconds
+    call_started_at = Column(DateTime, nullable=True)  # When video call started
     cancel_reason = Column(Text)
     notes = Column(Text)  # doctor's prescription/advice
     created_at = Column(DateTime, default=datetime.utcnow)

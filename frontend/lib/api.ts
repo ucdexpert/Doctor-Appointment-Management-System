@@ -165,7 +165,7 @@ export const appointmentsAPI = {
   getStats: () =>
     api.get('/appointments/stats'),
 
-  create: (data: { doctor_id: number; appointment_date: string; time_slot: string; reason?: string }) =>
+  create: (data: { doctor_id: number; appointment_date: string; time_slot: string; reason?: string; appointment_type?: string }) =>
     api.post('/appointments', data),
 
   getMyAppointments: (params?: Record<string, string>) =>
@@ -185,6 +185,12 @@ export const appointmentsAPI = {
 
   addNotes: (id: number, data: { notes: string }) =>
     api.put(`/appointments/${id}/notes`, data),
+
+  startVideoCall: (id: number) =>
+    api.post(`/appointments/${id}/call/start`),
+
+  endVideoCall: (id: number) =>
+    api.post(`/appointments/${id}/call/end`),
 };
 
 // Schedule APIs

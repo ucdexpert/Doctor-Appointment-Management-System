@@ -1,26 +1,33 @@
 "use client";
 
+import { useState } from "react";
 import { Appointment } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/appointment/StatusBadge";
-import { Calendar, Clock, User, FileText, Loader2, Star, Download } from "lucide-react";
+import { Calendar, Clock, User, FileText, Loader2, Star, Download, Video, PhoneOff } from "lucide-react";
 import { toast } from "sonner";
 
 interface AppointmentCardProps {
   appointment: Appointment;
   onCancel?: (appointment: Appointment) => void;
   onReview?: (appointment: Appointment) => void;
+  onJoinCall?: (appointmentId: number) => void;
+  onEndCall?: (appointmentId: number) => void;
   isCancelling?: boolean;
   showActions?: boolean;
+  showRole?: "patient" | "doctor";
 }
 
 export default function AppointmentCard({
   appointment,
   onCancel,
   onReview,
+  onJoinCall,
+  onEndCall,
   isCancelling = false,
   showActions = true,
+  showRole = "patient",
 }: AppointmentCardProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -35,6 +42,23 @@ export default function AppointmentCard({
   const formatTime = (timeString: string) => {
     return timeString.substring(0, 5);
   };
+
+  const formatCallDuration = (seconds: number) => {
+    if (!seconds || seconds === 0) return "0m";
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes % 60}m`;
+    }
+    return `${minutes}m`;
+  };
+
+  const isVideoCall = appointment.appointment_type === "video";
+  const isCallInProgress = appointment.call_started_at && appointment.call_duration === 0;
+  const showJoinCallButton = isVideoCall && 
+    (appointment.status === "confirmed" || appointment.status === "pending");
+  const showCallDuration = appointment.call_duration && appointment.call_duration > 0;
 
   const downloadPrescription = async () => {
     try {
@@ -83,6 +107,12 @@ export default function AppointmentCard({
                   {appointment.doctor?.user?.name || "Doctor"}
                 </h3>
                 <StatusBadge status={appointment.status} />
+                {isVideoCall && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 border border-purple-200">
+                    <Video className="w-3 h-3" />
+                    Video
+                  </span>
+                )}
               </div>
 
               <div className="grid sm:grid-cols-3 gap-3 text-sm text-gray-600">
@@ -106,6 +136,17 @@ export default function AppointmentCard({
                 <div className="mt-3 p-3 bg-gray-50 rounded-lg">
                   <p className="text-xs text-gray-500 mb-1">Reason for visit:</p>
                   <p className="text-sm text-gray-700">{appointment.reason}</p>
+                </div>
+              )}
+
+              {showCallDuration && (
+                <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-2">
+                    <PhoneOff className="w-4 h-4 text-green-600" />
+                    <p className="text-sm text-green-700 font-medium">
+                      Call Duration: {formatCallDuration(appointment.call_duration)}
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -145,6 +186,18 @@ export default function AppointmentCard({
           {/* Action Buttons */}
           {showActions && (
             <div className="flex flex-col gap-2 shrink-0">
+              {/* Join Call Button - Only for video appointments */}
+              {showJoinCallButton && onJoinCall && (
+                <Button
+                  onClick={() => onJoinCall(appointment.id)}
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+                  size="sm"
+                >
+                  <Video className="w-4 h-4 mr-1" />
+                  Join Call
+                </Button>
+              )}
+
               {/* Cancel Button - Only for pending/confirmed */}
               {(appointment.status === "pending" ||
                 appointment.status === "confirmed") &&

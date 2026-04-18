@@ -25,7 +25,9 @@ import {
   ChevronRight,
   Info,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Video,
+  Building2
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -43,6 +45,7 @@ interface BookingSuccessData {
   time: string;
   fee: string;
   reason: string;
+  appointmentType: "in-person" | "video";
 }
 
 export default function BookAppointmentPage() {
@@ -59,6 +62,7 @@ export default function BookAppointmentPage() {
   const [reason, setReason] = useState("");
   const [bookingSuccess, setBookingSuccess] = useState<BookingSuccessData | null>(null);
   const [slotError, setSlotError] = useState("");
+  const [appointmentType, setAppointmentType] = useState<"in-person" | "video">("in-person");
 
   // Get min date (today) in YYYY-MM-DD format
   const today = new Date().toISOString().split("T")[0];
@@ -176,6 +180,7 @@ export default function BookAppointmentPage() {
         appointment_date: selectedDate,
         time_slot: selectedSlot,
         reason: reason || undefined,
+        appointment_type: appointmentType,
       });
 
       // Trigger confetti
@@ -192,7 +197,8 @@ export default function BookAppointmentPage() {
         date: formatDate(selectedDate),
         time: selectedSlot,
         fee: `PKR ${formatFee(doctor?.consultation_fee || 0)}`,
-        reason: reason || "Not specified"
+        reason: reason || "Not specified",
+        appointmentType: appointmentType,
       });
 
       toast.success("Appointment booked successfully! 🎉");
@@ -360,6 +366,31 @@ export default function BookAppointmentPage() {
                     </div>
                   </div>
 
+                  <div className={`flex items-start gap-3 p-4 rounded-xl ${
+                    bookingSuccess.appointmentType === "video" 
+                      ? "bg-purple-50 border border-purple-200" 
+                      : "bg-orange-50 border border-orange-200"
+                  }`}>
+                    {bookingSuccess.appointmentType === "video" ? (
+                      <Video className="w-5 h-5 text-purple-600 mt-0.5" />
+                    ) : (
+                      <Building2 className="w-5 h-5 text-orange-600 mt-0.5" />
+                    )}
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-600">Consultation Type</p>
+                      <p className="font-semibold text-gray-900">
+                        {bookingSuccess.appointmentType === "video" 
+                          ? "🎥 Video Consultation" 
+                          : "🏥 In-Person Visit"}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {bookingSuccess.appointmentType === "video"
+                          ? "Join the video call from your appointments page at the scheduled time"
+                          : "Please visit the doctor's clinic at the scheduled time"}
+                      </p>
+                    </div>
+                  </div>
+
                   {bookingSuccess.reason && bookingSuccess.reason !== "Not specified" && (
                     <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
                       <Shield className="w-5 h-5 text-gray-600 mt-0.5" />
@@ -495,6 +526,71 @@ export default function BookAppointmentPage() {
           >
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
               <form onSubmit={handleBooking} className="space-y-6">
+                {/* Appointment Type Selection */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                    <Video className="w-4 h-4 text-indigo-600" />
+                    Consultation Type <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {/* In-Person Option */}
+                    <button
+                      type="button"
+                      onClick={() => setAppointmentType("in-person")}
+                      className={`p-4 rounded-xl border-2 transition-all text-left ${
+                        appointmentType === "in-person"
+                          ? "border-orange-500 bg-orange-50"
+                          : "border-gray-200 hover:border-gray-300 bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          appointmentType === "in-person"
+                            ? "bg-orange-500 text-white"
+                            : "bg-gray-100 text-gray-600"
+                        }`}>
+                          <Building2 className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900">In-Person</p>
+                          <p className="text-xs text-gray-500">Visit clinic</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-600">
+                        Visit the doctor's clinic at scheduled time
+                      </p>
+                    </button>
+
+                    {/* Video Consultation Option */}
+                    <button
+                      type="button"
+                      onClick={() => setAppointmentType("video")}
+                      className={`p-4 rounded-xl border-2 transition-all text-left ${
+                        appointmentType === "video"
+                          ? "border-purple-500 bg-purple-50"
+                          : "border-gray-200 hover:border-gray-300 bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          appointmentType === "video"
+                            ? "bg-purple-500 text-white"
+                            : "bg-gray-100 text-gray-600"
+                        }`}>
+                          <Video className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900">Video Call</p>
+                          <p className="text-xs text-gray-500">Online consultation</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-600">
+                        Join video call from your appointments page
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
                 {/* Date Selection */}
                 <div className="space-y-2">
                   <Label htmlFor="date" className="text-sm font-semibold text-gray-900 flex items-center gap-2">

@@ -59,6 +59,9 @@ export interface Appointment {
   time_slot: string;
   reason: string | null;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  appointment_type: 'in-person' | 'video';
+  call_duration: number;
+  call_started_at: string | null;
   cancel_reason: string | null;
   notes: string | null;
   created_at: string;

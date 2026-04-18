@@ -18,6 +18,7 @@ python-multipart>=0.0.6
 APScheduler==3.10.4
 reportlab==4.0.9
 alembic==1.13.1
+PyJWT==2.8.0
 
 # Medical Report Upload (Optional)
 pdfplumber>=0.10.0

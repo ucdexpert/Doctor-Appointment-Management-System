@@ -152,6 +152,7 @@ class AppointmentBase(BaseModel):
     appointment_date: str = Field(..., pattern="^\\d{4}-\\d{2}-\\d{2}$")  # YYYY-MM-DD
     time_slot: str = Field(..., pattern="^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$")
     reason: Optional[str] = None
+    appointment_type: str = Field(default="in-person", pattern="^(in-person|video)$")
 
 
 class AppointmentCreate(AppointmentBase):
@@ -171,6 +172,9 @@ class AppointmentResponse(AppointmentBase):
     patient_id: int
     doctor_id: int
     status: str
+    appointment_type: str
+    call_duration: Optional[int] = 0
+    call_started_at: Optional[datetime] = None
     cancel_reason: Optional[str] = None
     notes: Optional[str] = None
     created_at: datetime

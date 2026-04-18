@@ -134,6 +134,7 @@ def create_appointment(
         appointment_date=appt_date,
         time_slot=appt_time,
         reason=appointment_data.reason,
+        appointment_type=appointment_data.appointment_type,
         status="pending"
     )
 
@@ -542,3 +543,109 @@ def download_prescription_pdf(
             "Content-Disposition": f"attachment; filename=prescription_{appointment_id}.pdf"
         }
     )
+
+
+@router.post("/{appointment_id}/call/start", response_model=dict)
+def start_video_call(
+    appointment_id: int,
+    current_user: User = Depends(require_role("patient", "doctor")),
+    db: Session = Depends(get_db)
+):
+    """Start video call tracking - records when call begins"""
+    
+    # Get appointment
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    if not appointment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Appointment not found"
+        )
+    
+    # Verify user is patient or doctor of this appointment
+    is_patient = (appointment.patient_id == current_user.id)
+    is_doctor = False
+    
+    if current_user.role == "doctor":
+        doctor = db.query(Doctor).filter(Doctor.user_id == current_user.id).first()
+        is_doctor = doctor and appointment.doctor_id == doctor.id
+    
+    if not is_patient and not is_doctor:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this appointment"
+        )
+    
+    # Check if appointment is video type
+    if appointment.appointment_type != "video":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This is not a video consultation appointment"
+        )
+    
+    # Record call start time
+    appointment.call_started_at = datetime.utcnow()
+    db.commit()
+    
+    return {
+        "message": "Call started",
+        "appointment_id": appointment_id,
+        "started_at": appointment.call_started_at.isoformat()
+    }
+
+
+@router.post("/{appointment_id}/call/end", response_model=dict)
+def end_video_call(
+    appointment_id: int,
+    current_user: User = Depends(require_role("patient", "doctor")),
+    db: Session = Depends(get_db)
+):
+    """End video call tracking - calculates and stores call duration"""
+    
+    # Get appointment
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    if not appointment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Appointment not found"
+        )
+    
+    # Verify user is patient or doctor of this appointment
+    is_patient = (appointment.patient_id == current_user.id)
+    is_doctor = False
+    
+    if current_user.role == "doctor":
+        doctor = db.query(Doctor).filter(Doctor.user_id == current_user.id).first()
+        is_doctor = doctor and appointment.doctor_id == doctor.id
+    
+    if not is_patient and not is_doctor:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this appointment"
+        )
+    
+    # Check if call was started
+    if not appointment.call_started_at:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Call was not started"
+        )
+    
+    # Calculate duration in seconds
+    call_ended_at = datetime.utcnow()
+    duration_seconds = int((call_ended_at - appointment.call_started_at).total_seconds())
+    
+    # Update appointment
+    appointment.call_duration = duration_seconds
+    db.commit()
+    db.refresh(appointment)
+    
+    # Convert duration to readable format
+    minutes = duration_seconds // 60
+    seconds = duration_seconds % 60
+    
+    return {
+        "message": "Call ended",
+        "appointment_id": appointment_id,
+        "duration_seconds": duration_seconds,
+        "duration_formatted": f"{minutes}m {seconds}s"
+    }
